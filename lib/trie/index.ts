@@ -41,6 +41,7 @@ export class Trie<E = string> {
   }
 
   #addString(key: string, value: E): void {
+    key = key.toUpperCase();
     let current = this.#root;
 
     for (const char of key) {
@@ -112,6 +113,7 @@ export class Trie<E = string> {
   }
 
   search(prefix: string): E[] {
+    prefix = prefix.toUpperCase();
     let current = this.#root;
     for (const char of prefix) {
       if (!current.children.has(char)) {

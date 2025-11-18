@@ -5,7 +5,6 @@ import { ChevronsUpDownIcon, DownloadIcon } from 'lucide-react';
 import Papa from 'papaparse';
 import { useEffect, useState } from 'react';
 import { algorithms, columnLeidenResults } from '@/lib/data';
-import { useStore } from '@/lib/hooks';
 import { downloadFile, type EventMessage, Events, eventEmitter } from '@/lib/utils';
 import { LeidenPieChart } from '../statistics';
 import { Button } from '../ui/button';
@@ -34,31 +33,23 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     eventEmitter.on(Events.ALGORITHM_RESULTS, (data: EventMessage[Events.ALGORITHM_RESULTS]) => {
+      console.log(data);
+
       setAlgorithmResults(data);
     });
-    const escapeListener = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowTable(false);
-      }
-    };
-    document.addEventListener('keydown', escapeListener);
-    return () => {
-      document.removeEventListener('keydown', escapeListener);
-    };
   }, []);
 
   const [showTable, setShowTable] = useState(false);
 
   const handleExport = (communities: EventMessage[Events.ALGORITHM_RESULTS]['communities']) => {
-    const projectTitle = useStore.getState().projectTitle;
     const csv = Papa.unparse(
       communities.map(c => ({
         ...c,
-        genes: c.genes.join(';'),
-        numberOfGenes: c.genes.length,
+        nodes: c.nodes.join(';'),
+        numberOfNodes: c.nodes.length,
       })),
     );
-    downloadFile(csv, `${projectTitle === 'Untitled' ? '' : `${projectTitle}_`}leiden_communities.csv`);
+    downloadFile(csv, 'leiden_communities.csv');
   };
 
   return (
@@ -161,12 +152,12 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
                             ...c,
                             averageDegree: c.averageDegree.toString(),
                             percentage: c.percentage.toString(),
-                            genes: c.genes.join(', '),
-                            numberOfGenes: c.genes.length.toString(),
+                            nodes: c.nodes.join(', '),
+                            numberOfNodes: c.nodes.length.toString(),
                           }))}
                           columns={columnLeidenResults}
-                          filterColumnName={'genes'}
-                          placeholder='Search by gene name'
+                          filterColumnName={'nodes'}
+                          placeholder='Search by node name'
                         />
                       </div>
                     </TabsContent>

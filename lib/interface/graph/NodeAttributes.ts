@@ -53,6 +53,11 @@ export interface NodeAttributes extends Attributes, SimulationNodeDatum {
   type?: 'circle' | 'border' | 'highlight' | 'normal';
 
   /**
+   * Node category/type (e.g., Gene, Drug, Disease)
+   */
+  nodeType?: string;
+
+  /**
    * boolean whether the node is highlighted (shows hoverlabel on true)
    */
   highlighted?: boolean;

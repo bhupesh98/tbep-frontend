@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">
+  <meta lastmodifieddate="2025-11-15">
+    <creator>TBEP Sample Generator</creator>
+    <description>Sample Knowledge Graph in GEXF format</description>
+  </meta>
+  <graph mode="static" defaultedgetype="directed">
+    <attributes class="node">
+      <attribute id="0" title="type" type="string"/>
+      <attribute id="1" title="chromosome" type="string"/>
+    </attributes>
+    <attributes class="edge">
+      <attribute id="0" title="type" type="string"/>
+      <attribute id="1" title="weight" type="double"/>
+    </attributes>
+    <nodes>
+      <node id="BRCA1" label="BRCA1">
+        <attvalues>
+          <attvalue for="0" value="Gene"/>
+          <attvalue for="1" value="17"/>
+        </attvalues>
+      </node>
+      <node id="breast_cancer" label="Breast Cancer">
+        <attvalues>
+          <attvalue for="0" value="Disease"/>
+        </attvalues>
+      </node>
+      <node id="TP53" label="TP53">
+        <attvalues>
+          <attvalue for="0" value="Gene"/>
+          <attvalue for="1" value="17"/>
+        </attvalues>
+      </node>
+      <node id="EGFR" label="EGFR">
+        <attvalues>
+          <attvalue for="0" value="Gene"/>
+          <attvalue for="1" value="7"/>
+        </attvalues>
+      </node>
+    </nodes>
+    <edges>
+      <edge id="0" source="BRCA1" target="breast_cancer">
+        <attvalues>
+          <attvalue for="0" value="ASSOCIATES"/>
+          <attvalue for="1" value="0.95"/>
+        </attvalues>
+      </edge>
+      <edge id="1" source="BRCA1" target="TP53">
+        <attvalues>
+          <attvalue for="0" value="INTERACTS"/>
+          <attvalue for="1" value="0.87"/>
+        </attvalues>
+      </edge>
+      <edge id="2" source="TP53" target="breast_cancer">
+        <attvalues>
+          <attvalue for="0" value="ASSOCIATES"/>
+          <attvalue for="1" value="0.82"/>
+        </attvalues>
+      </edge>
+    </edges>
+  </graph>
+</gexf>

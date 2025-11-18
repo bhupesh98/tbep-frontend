@@ -65,7 +65,7 @@ export function StatisticsTab() {
       <div className='grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6'>
         <Card>
           <CardHeader>
-            <CardTitle className='pb-4'>Total Genes</CardTitle>
+            <CardTitle className='pb-4'>Total Nodes</CardTitle>
             <b className='text-4xl'>{networkStatistics.totalNodes.toLocaleString()}</b>
           </CardHeader>
         </Card>
@@ -138,10 +138,10 @@ export function StatisticsTab() {
         </CardContent>
       </Card>
 
-      {/* Top 10 Hub Genes */}
+      {/* Top 10 Hub Nodes */}
       <Card className='pb-6'>
         <CardHeader>
-          <CardTitle>Top 10 Hub Genes</CardTitle>
+          <CardTitle>Top 10 Hub Nodes</CardTitle>
           <CardDescription>Most connected nodes in the network</CardDescription>
         </CardHeader>
         <CardContent>

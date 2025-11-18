@@ -37,11 +37,7 @@ yarn-error.log*
 next-env.d.ts
 
 # IDE
-/.vscode
 /.idea
-
-# Large Video Files
-/public/video/*.mp4
 
 # Nextra
 _pagefind

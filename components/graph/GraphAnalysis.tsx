@@ -218,11 +218,11 @@ export function GraphAnalysis({
               );
               return {
                 name,
-                genes: genes.map(v => graph.getNodeAttribute(v, 'label')!),
+                nodes: genes.map(v => graph.getNodeAttribute(v, 'label')!),
                 color,
                 percentage: ((genes.length / graph.order) * 100).toFixed(2),
                 averageDegree: (degreeSum / genes.length).toFixed(2),
-                degreeCentralGene: graph.getNodeAttribute(
+                degreeCentralNode: graph.getNodeAttribute(
                   genes.find(gene => graph.degree(gene) === maxDegree),
                   'label',
                 )!,
@@ -272,11 +272,11 @@ export function GraphAnalysis({
                 );
                 return {
                   name,
-                  genes: genes.map(v => graph.getNodeAttribute(v, 'label')!),
+                  nodes: genes.map(v => graph.getNodeAttribute(v, 'label')!),
                   color,
                   percentage: ((genes.length / graph.order) * 100).toFixed(2),
                   averageDegree: (degreeSum / genes.length).toFixed(2),
-                  degreeCentralGene: graph.getNodeAttribute(
+                  degreeCentralNode: graph.getNodeAttribute(
                     genes.find(gene => graph.degree(gene) === maxDegree),
                     'label',
                   )!,

@@ -77,7 +77,7 @@ export function GraphEvents({
     if (trieRef.current.size === 0) return;
     const prefix = nodeSearchQuery.split(/[\n,]/).pop()?.trim() || '';
     if (prefix.length === 0) return;
-    const suggestions = trieRef.current.search(prefix.toUpperCase()).map(s => s.key);
+    const suggestions = trieRef.current.search(prefix).map(s => s.key);
     useStore.setState({ nodeSuggestions: suggestions });
   }, [nodeSearchQuery]);
 

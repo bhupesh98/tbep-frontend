@@ -30,9 +30,9 @@ export const columnLeidenResults: ColumnDef<Record<string, string>>[] = [
     meta: { width: '8rem' },
   },
   {
-    accessorKey: 'numberOfGenes',
-    header: headerHelper('Number of Genes'),
-    sortingFn: (a, b) => Number(a.original.numberOfGenes) - Number(b.original.numberOfGenes),
+    accessorKey: 'numberOfNodes',
+    header: headerHelper('Number of Nodes'),
+    sortingFn: (a, b) => Number(a.original.numberOfNodes) - Number(b.original.numberOfNodes),
     meta: { textAlign: 'center' },
   },
   {
@@ -53,8 +53,8 @@ export const columnLeidenResults: ColumnDef<Record<string, string>>[] = [
     meta: { textAlign: 'center' },
   },
   {
-    accessorKey: 'genes',
-    header: headerHelper('Genes'),
+    accessorKey: 'nodes',
+    header: headerHelper('Nodes'),
     meta: { wordBreak: 'break-word' },
   },
 ];
@@ -71,6 +71,50 @@ export const columnSelectedNodes: ColumnDef<SelectedNodeProperty>[] = [
   {
     accessorKey: 'Description',
     header: headerHelper('Description'),
+  },
+];
+
+export const columnKGSelectedNodes: ColumnDef<{ id: string; label: string; nodeType?: string }>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+];
+
+export const columnKGConnectedEdges: ColumnDef<{
+  source: string;
+  target: string;
+  sourceLabel?: string;
+  targetLabel?: string;
+  edgeType?: string;
+}>[] = [
+  {
+    accessorKey: 'source',
+    header: headerHelper('Source Node'),
+  },
+  {
+    accessorKey: 'sourceLabel',
+    header: headerHelper('Source Label'),
+  },
+  {
+    accessorKey: 'target',
+    header: headerHelper('Target Node'),
+  },
+  {
+    accessorKey: 'targetLabel',
+    header: headerHelper('Target Label'),
+  },
+  {
+    accessorKey: 'edgeType',
+    header: headerHelper('Edge Type'),
   },
 ];
 
@@ -211,6 +255,112 @@ export const columnTop10ByPageRank: ColumnDef<Record<string, string>>[] = [
     accessorKey: 'pagerank',
     header: headerHelper('PageRank'),
     sortingFn: (a, b) => Number(a.original.PageRank) - Number(b.original.PageRank),
+    meta: { textAlign: 'center' },
+  },
+];
+
+// KG-specific column definitions (using 'id', 'label', 'nodeType' fields)
+export const columnKGTop10ByDegree: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+  {
+    accessorKey: 'degree',
+    header: headerHelper('Degree'),
+    sortingFn: (a, b) => Number(a.original.degree) - Number(b.original.degree),
+    meta: { textAlign: 'center' },
+  },
+];
+
+export const columnKGTop10ByBetweenness: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+  {
+    accessorKey: 'betweenness',
+    header: headerHelper('Betweenness'),
+    sortingFn: (a, b) => Number(a.original.betweenness) - Number(b.original.betweenness),
+    meta: { textAlign: 'center' },
+  },
+];
+
+export const columnKGTop10ByCloseness: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+  {
+    accessorKey: 'closeness',
+    header: headerHelper('Closeness'),
+    sortingFn: (a, b) => Number(a.original.closeness) - Number(b.original.closeness),
+    meta: { textAlign: 'center' },
+  },
+];
+
+export const columnKGTop10ByEigenvector: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+  {
+    accessorKey: 'eigenvector',
+    header: headerHelper('Eigenvector'),
+    sortingFn: (a, b) => Number(a.original.eigenvector) - Number(b.original.eigenvector),
+    meta: { textAlign: 'center' },
+  },
+];
+
+export const columnKGTop10ByPageRank: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'id',
+    header: headerHelper('Node ID'),
+  },
+  {
+    accessorKey: 'label',
+    header: headerHelper('Label'),
+  },
+  {
+    accessorKey: 'nodeType',
+    header: headerHelper('Node Type'),
+  },
+  {
+    accessorKey: 'pagerank',
+    header: headerHelper('PageRank'),
+    sortingFn: (a, b) => Number(a.original.pagerank) - Number(b.original.pagerank),
     meta: { textAlign: 'center' },
   },
 ];

@@ -10,7 +10,7 @@ import { createNodeBorderProgram, NodeBorderProgram } from '@sigma/node-border';
 import type { Attributes } from 'graphology-types';
 import { MaximizeIcon, MinimizeIcon } from 'lucide-react';
 import React, { Suspense, useEffect } from 'react';
-import type { Sigma } from 'sigma';
+import type Sigma from 'sigma';
 import { drawDiscNodeHover, EdgeLineProgram, NodeCircleProgram } from 'sigma/rendering';
 import { DEFAULT_EDGE_COLOR } from '@/lib/data';
 import { NodeGradientProgram } from '@/lib/graph';
@@ -27,10 +27,9 @@ import {
   ZoomControl,
 } from '.';
 
-export const SigmaContainer = React.forwardRef<
-  Sigma<NodeAttributes, EdgeAttributes, Attributes>,
-  SigmaContainerProps<NodeAttributes, EdgeAttributes, Attributes>
->((props, ref) => {
+export function SigmaContainer(
+  props: SigmaContainerProps<NodeAttributes, EdgeAttributes, Attributes> & { ref?: React.Ref<Sigma> },
+) {
   const clickedNodesRef = React.useRef(new Set<string>());
   const highlightedNodesRef = React.useRef(new Set<string>());
   const seedProximityNodesRef = React.useRef(new Set<string>());
@@ -42,7 +41,7 @@ export const SigmaContainer = React.forwardRef<
 
   return (
     <_SigmaContainer
-      ref={ref}
+      ref={props.ref}
       className={props.className}
       settings={{
         allowInvalidContainer: true,
@@ -97,4 +96,4 @@ export const SigmaContainer = React.forwardRef<
       </ControlsContainer>
     </_SigmaContainer>
   );
-});
+}

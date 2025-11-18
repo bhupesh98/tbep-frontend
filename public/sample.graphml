@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="label" for="node" attr.name="label" attr.type="string"/>
+  <key id="type" for="node" attr.name="type" attr.type="string"/>
+  <key id="chromosome" for="node" attr.name="chromosome" attr.type="string"/>
+  <key id="edge_type" for="edge" attr.name="type" attr.type="string"/>
+  <key id="weight" for="edge" attr.name="weight" attr.type="double"/>
+  <graph id="SampleKG" edgedefault="directed">
+    <node id="BRCA1">
+      <data key="label">BRCA1</data>
+      <data key="type">Gene</data>
+      <data key="chromosome">17</data>
+    </node>
+    <node id="breast_cancer">
+      <data key="label">Breast Cancer</data>
+      <data key="type">Disease</data>
+    </node>
+    <node id="TP53">
+      <data key="label">TP53</data>
+      <data key="type">Gene</data>
+      <data key="chromosome">17</data>
+    </node>
+    <edge source="BRCA1" target="breast_cancer">
+      <data key="edge_type">ASSOCIATES</data>
+      <data key="weight">0.95</data>
+    </edge>
+    <edge source="BRCA1" target="TP53">
+      <data key="edge_type">INTERACTS</data>
+      <data key="weight">0.87</data>
+    </edge>
+    <edge source="TP53" target="breast_cancer">
+      <data key="edge_type">ASSOCIATES</data>
+      <data key="weight">0.82</data>
+    </edge>
+  </graph>
+</graphml>

@@ -1,0 +1,9 @@
+source_id,target_id,edge_type,source_type,target_type,source_name,target_name,edge_weight,source_chromosome
+BRCA1,breast_cancer,ASSOCIATES,Gene,Disease,BRCA1,Breast Cancer,0.95,17
+BRCA1,TP53,INTERACTS,Gene,Gene,BRCA1,TP53,0.87,17
+TP53,breast_cancer,ASSOCIATES,Gene,Disease,TP53,Breast Cancer,0.82,17
+BRCA1,ovarian_cancer,ASSOCIATES,Gene,Disease,BRCA1,Ovarian Cancer,0.91,17
+TP53,ovarian_cancer,ASSOCIATES,Gene,Disease,TP53,Ovarian Cancer,0.78,17
+EGFR,lung_cancer,ASSOCIATES,Gene,Disease,EGFR,Lung Cancer,0.93,7
+KRAS,lung_cancer,ASSOCIATES,Gene,Disease,KRAS,Lung Cancer,0.89,12
+EGFR,KRAS,INTERACTS,Gene,Gene,EGFR,KRAS,0.76,7

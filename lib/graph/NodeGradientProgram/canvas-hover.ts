@@ -22,9 +22,9 @@ export function drawHover(
   const font = settings.labelFont;
   const weight = settings.labelWeight;
   const subLabelSize = size - 2;
-  const geneName = `Gene Name: ${data.label || ''}`;
-  const geneID = `ENSG ID: ${data.ID}`;
-  const description = `Description: ${data.description}`;
+  const nodeName = `Name: ${data.label || ''}`;
+  const nodeId = `ID: ${data.ID ?? data.id ?? ''}`;
+  const description = data.description ? `Description: ${data.description}` : '';
 
   // Then we draw the label background
   context.beginPath();
@@ -35,20 +35,20 @@ export function drawHover(
   context.shadowColor = '#000';
 
   context.font = `${weight} ${size}px ${font}`;
-  const geneNameWidth = context.measureText(geneName).width;
+  const nodeNameWidth = context.measureText(nodeName).width;
   context.font = `${weight} ${subLabelSize}px ${font}`;
-  const geneIDWidth = geneID ? context.measureText(geneID).width : 0;
+  const nodeIdWidth = nodeId ? context.measureText(nodeId).width : 0;
   const descriptionWidth = description ? context.measureText(description).width : 0;
-  const textWidth = Math.max(geneNameWidth, geneIDWidth, descriptionWidth);
+  const textWidth = Math.max(nodeNameWidth, nodeIdWidth, descriptionWidth);
 
   const x = Math.round(data.x);
   const y = Math.round(data.y);
   const w = Math.round(textWidth + size / 2 + data.size + 3);
-  const hGenename = Math.round(size / 2 + 4);
-  const hGeneID = geneID ? Math.round(subLabelSize / 2 + 9) : 0;
-  const hDescription = Math.round(subLabelSize / 2 + 9);
+  const hNodename = Math.round(size / 2 + 4);
+  const hNodeId = nodeId ? Math.round(subLabelSize / 2 + 9) : 0;
+  const hDescription = description ? Math.round(subLabelSize / 2 + 9) : 0;
 
-  drawRoundRect(context, x, y - hGeneID - 12, w, hDescription + hGenename + hGeneID + 12, 5);
+  drawRoundRect(context, x, y - hNodeId - 12, w, hDescription + hNodename + hNodeId + 12, 5);
   context.closePath();
   context.fill();
 
@@ -59,11 +59,13 @@ export function drawHover(
   // And finally we draw the labels
   context.fillStyle = data.color;
   context.font = `${weight} ${size}px ${font}`;
-  context.fillText(geneName, data.x + data.size + 3, data.y + size / 3);
+  context.fillText(nodeName, data.x + data.size + 3, data.y + size / 3);
 
   context.fillStyle = TEXT_COLOR;
   context.font = `${weight} ${subLabelSize}px ${font}`;
-  context.fillText(geneID, data.x + data.size + 3, data.y - (2 * size) / 3 - 2);
+  context.fillText(nodeId, data.x + data.size + 3, data.y - (2 * size) / 3 - 2);
 
-  context.fillText(description, data.x + data.size + 3, data.y + size / 3 + 3 + subLabelSize);
+  if (description) {
+    context.fillText(description, data.x + data.size + 3, data.y + size / 3 + 3 + subLabelSize);
+  }
 }

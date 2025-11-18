@@ -55,6 +55,7 @@ export function NetworkInfo() {
           loading={[false, gseaLoading]}
           setOpen={setShowTable}
           filterColumnNames={['Gene_Name', 'Pathway']}
+          description='View the selected nodes and their details. Switch to "GSEA Analysis" to see gene set enrichment analysis results.'
         />
       </div>
     </div>

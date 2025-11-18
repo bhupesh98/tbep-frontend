@@ -11,13 +11,13 @@ export function getProperty(val: string | GenePropertyMetadata) {
   return typeof val === 'string' ? val : val.name;
 }
 
-export async function openDB(name: string, mode: IDBTransactionMode) {
+export async function openDB(objectStoreName: string, mode: IDBTransactionMode) {
   return new Promise<IDBObjectStore | null>((resolve, reject) => {
     const request = indexedDB.open('universal', 1);
     request.onsuccess = () => {
       const db = request.result;
-      const tx = db.transaction(name, mode);
-      const store = tx.objectStore(name);
+      const tx = db.transaction(objectStoreName, mode);
+      const store = tx.objectStore(objectStoreName);
       resolve(store);
     };
     request.onerror = () => reject(null);
@@ -75,11 +75,11 @@ export type EventMessage = {
     modularity: number;
     communities: Array<{
       name: string;
-      genes: string[];
+      nodes: string[];
       color: string;
       percentage: string;
       averageDegree: string;
-      degreeCentralGene: string;
+      degreeCentralNode: string;
     }>;
     resolution: number;
   };

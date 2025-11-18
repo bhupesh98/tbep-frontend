@@ -22,7 +22,7 @@ export const FileName = () => {
   );
 };
 
-export const MouseControlMessage = () => {
+export const MouseControlMessage = ({ className }: { className?: string }) => {
   const [visible, setVisible] = React.useState(true);
 
   return (
@@ -30,7 +30,7 @@ export const MouseControlMessage = () => {
       {visible && (
         // biome-ignore lint/a11y/noStaticElementInteractions: hydration error (button inside button)
         <span
-          className='absolute bottom-0.5 flex size-2.5'
+          className={`absolute bottom-0.5 flex size-2.5 ${className ?? ''}`}
           onClick={() => setVisible(false)}
           onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && setVisible(false)}
         >

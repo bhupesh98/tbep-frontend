@@ -3,6 +3,7 @@ import { XSquareIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Cell, Pie, PieChart, type TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+import type { EventMessage, Events } from '@/lib/utils';
 import { ChartContainer, ChartTooltip } from '../ui/chart';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -13,27 +14,16 @@ const CustomTooltip = ({ active, payload }: TooltipContentProps<ValueType, NameT
       <div className='rounded-md border border-gray-200 bg-white p-2 shadow-md'>
         <p className='font-bold text-primary'>{data.name}</p>
         <p>Percentage: {data.percentage}%</p>
-        <p>Gene Count: {data.count}</p>
+        <p>Node Count: {data.count}</p>
         <p>Average Degree: {data.averageDegree}</p>
-        <p className='mt-1 text-sm italic'>Click to view genes</p>
+        <p className='mt-1 text-sm italic'>Click to view nodes</p>
       </div>
     );
   }
   return null;
 };
 
-export function LeidenPieChart({
-  data,
-}: {
-  data: {
-    name: string;
-    genes: string[];
-    color: string;
-    percentage: string;
-    averageDegree: string;
-    degreeCentralGene: string;
-  }[];
-}) {
+export function LeidenPieChart({ data }: { data: EventMessage[Events.ALGORITHM_RESULTS]['communities'] }) {
   const [selectedClusterIndex, setSelectedClusterIndex] = useState<number | null>(null);
 
   return (
@@ -53,11 +43,11 @@ export function LeidenPieChart({
           <Pie
             data={data.map(c => ({
               name: c.name,
-              count: c.genes.length,
+              count: c.nodes.length,
               percentage: +c.percentage,
               averageDegree: +c.averageDegree,
               fill: `var(--color-${c.name})`,
-              genes: c.genes,
+              nodes: c.nodes,
             }))}
             dataKey='percentage'
             nameKey='name'
@@ -76,7 +66,7 @@ export function LeidenPieChart({
       {selectedClusterIndex !== null && (
         <div className='fade-in slide-in-from-bottom-2 animate-in rounded border bg-white p-2 shadow-sm duration-200'>
           <div className='flex gap-2'>
-            <h3 className='mb-2 font-bold'>Genes in {data[selectedClusterIndex].name}:</h3>
+            <h3 className='mb-2 font-bold'>Nodes in {data[selectedClusterIndex].name}:</h3>
             <button
               type='button'
               onClick={() => setSelectedClusterIndex(null)}
@@ -87,8 +77,8 @@ export function LeidenPieChart({
           </div>
           <ScrollArea className='h-[53vh] rounded border'>
             <ul className='ml-6 list-disc'>
-              {data[selectedClusterIndex].genes.map(gene => (
-                <li key={gene}>{gene}</li>
+              {data[selectedClusterIndex].nodes.map(node => (
+                <li key={node}>{node}</li>
               ))}
             </ul>
           </ScrollArea>

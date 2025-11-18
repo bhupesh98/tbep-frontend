@@ -1,0 +1,11 @@
+source_id,target_id,edge_type,source_type,target_type,source_name,target_name,edge_weight
+BRCA1,TP53,INTERACTS,Gene,Gene,BRCA1,TP53,0.87
+TP53,BRCA1,INTERACTS,Gene,Gene,TP53,BRCA1,0.87
+BRCA1,breast_cancer,ASSOCIATES,Gene,Disease,BRCA1,Breast Cancer,0.95
+EGFR,KRAS,INTERACTS,Gene,Gene,EGFR,KRAS,0.76
+KRAS,EGFR,INTERACTS,Gene,Gene,KRAS,EGFR,0.5
+TP53,ovarian_cancer,ASSOCIATES,Gene,Disease,TP53,Ovarian Cancer,0.78
+KRAS,KRAS,SELF_LOOP,Gene,Gene,KRAS,KRAS,1.0
+KRAS,lung_cancer,ASSOCIATES,Gene,Disease,KRAS,Lung Cancer,0.89
+EGFR,lung_cancer,ASSOCIATES,Gene,Disease,EGFR,Lung Cancer,0.93
+EGFR,lung_cancer,ASSOCIATES,Gene,Disease,EGFR,Lung Cancer,0.85

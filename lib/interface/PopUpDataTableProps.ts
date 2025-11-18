@@ -45,5 +45,10 @@ export interface PopUpDataTableProps<E, F> {
    * Array of column names to filter
    * One column name for each table
    */
-  filterColumnNames: [string, string];
+  filterColumnNames?: [string | string[], string | string[]];
+
+  /**
+   * Description of the dialog
+   */
+  description: React.ReactNode;
 }

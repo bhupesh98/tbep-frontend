@@ -1,0 +1,92 @@
+{
+  "attributes": {
+    "name": "Sample Knowledge Graph"
+  },
+  "options": {
+    "type": "directed",
+    "multi": false,
+    "allowSelfLoops": true
+  },
+  "nodes": [
+    {
+      "key": "BRCA1",
+      "attributes": {
+        "label": "BRCA1",
+        "type": "Gene",
+        "ensembl_id": "ENSG00000012048",
+        "chromosome": "17"
+      }
+    },
+    {
+      "key": "breast_cancer",
+      "attributes": {
+        "label": "Breast Cancer",
+        "type": "Disease",
+        "mondo_id": "MONDO_0007254"
+      }
+    },
+    {
+      "key": "TP53",
+      "attributes": {
+        "label": "TP53",
+        "type": "Gene",
+        "ensembl_id": "ENSG00000141510",
+        "chromosome": "17"
+      }
+    },
+    {
+      "key": "ovarian_cancer",
+      "attributes": {
+        "label": "Ovarian Cancer",
+        "type": "Disease",
+        "mondo_id": "MONDO_0008170"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "key": "e1",
+      "source": "BRCA1",
+      "target": "breast_cancer",
+      "attributes": {
+        "type": "ASSOCIATES",
+        "weight": 0.95,
+        "evidence": "PubMed:12345"
+      },
+      "undirected": false
+    },
+    {
+      "key": "e2",
+      "source": "BRCA1",
+      "target": "TP53",
+      "attributes": {
+        "type": "INTERACTS",
+        "weight": 0.87,
+        "evidence": "STRING:9606.ENSP00000269305"
+      },
+      "undirected": false
+    },
+    {
+      "key": "e3",
+      "source": "TP53",
+      "target": "breast_cancer",
+      "attributes": {
+        "type": "ASSOCIATES",
+        "weight": 0.82,
+        "evidence": "PubMed:67890"
+      },
+      "undirected": false
+    },
+    {
+      "key": "e4",
+      "source": "BRCA1",
+      "target": "ovarian_cancer",
+      "attributes": {
+        "type": "ASSOCIATES",
+        "weight": 0.91,
+        "evidence": "PubMed:11111"
+      },
+      "undirected": false
+    }
+  ]
+}

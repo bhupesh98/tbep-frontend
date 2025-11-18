@@ -19,6 +19,7 @@ export default function PopUpDataTable<E, F>({
   filterColumnNames,
   tabsTitle,
   loading,
+  description,
 }: PopUpDataTableProps<E, F>) {
   /**
    * Function to download the selected genes data as a CSV file
@@ -46,9 +47,7 @@ export default function PopUpDataTable<E, F>({
         className='flex max-h-[90vh] min-h-[60vh] max-w-7xl flex-col'
       >
         <DialogTitle>{dialogTitle}</DialogTitle>
-        <DialogDescription>
-          View the selected genes and their details. Switch to "GSEA Analysis" for gene set enrichment analysis results.
-        </DialogDescription>
+        <DialogDescription>{description}</DialogDescription>
         <div className='grow overflow-y-scroll'>
           <Tabs defaultValue={tabsTitle?.[0]}>
             <TabsList className={cn('grid w-full', `grid-cols-${tabsTitle?.length}`)}>
@@ -63,7 +62,7 @@ export default function PopUpDataTable<E, F>({
                 data={data[0]}
                 loading={loading?.[0]}
                 columns={columns[0]}
-                filterColumnName={filterColumnNames[0]}
+                filterColumnName={filterColumnNames?.[0]}
               />
             </TabsContent>
             <TabsContent key={tabsTitle?.[1]} value={tabsTitle![1]}>
@@ -71,7 +70,7 @@ export default function PopUpDataTable<E, F>({
                 data={data[1]}
                 loading={loading?.[1]}
                 columns={columns[1]}
-                filterColumnName={filterColumnNames[1]}
+                filterColumnName={filterColumnNames?.[1]}
               />
             </TabsContent>
           </Tabs>

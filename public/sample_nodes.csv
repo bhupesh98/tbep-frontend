@@ -1,0 +1,8 @@
+id,name,type,node_chromosome,node_description
+BRCA1,BRCA1,Gene,17,Tumor suppressor gene
+breast_cancer,Breast Cancer,Disease,,Cancer of breast tissue
+TP53,TP53,Gene,17,Tumor protein p53
+ovarian_cancer,Ovarian Cancer,Disease,,Cancer of ovarian tissue
+EGFR,EGFR,Gene,7,Epidermal growth factor receptor
+lung_cancer,Lung Cancer,Disease,,Cancer of lung tissue
+KRAS,KRAS,Gene,12,KRAS proto-oncogene
