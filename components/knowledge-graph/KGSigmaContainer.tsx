@@ -18,7 +18,9 @@ import { DEFAULT_EDGE_COLOR } from '@/lib/data';
 import { NodeGradientProgram } from '@/lib/graph';
 import { useKGStore } from '@/lib/hooks';
 import type { EdgeAttributes, NodeAttributes } from '@/lib/interface';
+import { SelectionPlugin, type SelectionPluginHandle } from '@/lib/plugins/react-sigma-selection';
 import { ZoomControl } from '../graph';
+import { KGSelectionToolbar } from '../kg-right-panel';
 import {
   KGColorAnalysis,
   KGForceLayout,
@@ -44,6 +46,12 @@ export function KGGraphSigmaContainer(
 ) {
   const clickedNodesRef = React.useRef(new Set<string>());
   const highlightedNodesRef = React.useRef(new Set<string>());
+  const selectionPluginRef = React.createRef<SelectionPluginHandle>();
+
+  // Handle selection changes from the plugin
+  const handleSelectionChange = React.useCallback((nodeIds: string[]) => {
+    useKGStore.setState({ selectedNodes: nodeIds });
+  }, []);
 
   useEffect(() => {
     const sigmaContainer = document.querySelector('.sigma-container') as HTMLElement;
@@ -72,11 +80,11 @@ export function KGGraphSigmaContainer(
           allowInvalidContainer: true,
           enableEdgeEvents: true,
           defaultNodeType: 'circle',
-          labelRenderedSizeThreshold: 0.75,
-          labelDensity: 0.2,
+          labelRenderedSizeThreshold: 3,
+          labelDensity: 1.5,
           defaultEdgeColor: DEFAULT_EDGE_COLOR,
           defaultEdgeType: 'straight',
-          labelSize: 10,
+          labelSize: 8,
           zoomingRatio: 1.2,
           zIndex: true,
           nodeProgramClasses: {
@@ -108,7 +116,18 @@ export function KGGraphSigmaContainer(
         <KGColorAnalysis />
         <KGSizeAnalysis />
         <KGGraphSettings clickedNodesRef={clickedNodesRef} highlightedNodesRef={highlightedNodesRef} />
-        <KGGraphEvents clickedNodesRef={clickedNodesRef} highlightedNodesRef={highlightedNodesRef} />
+        <KGGraphEvents
+          clickedNodesRef={clickedNodesRef}
+          highlightedNodesRef={highlightedNodesRef}
+          selectionPluginRef={selectionPluginRef}
+        />
+        <SelectionPlugin
+          ref={selectionPluginRef}
+          selectedNodeType='border'
+          onSelectionChange={handleSelectionChange}
+          shouldIncludeNode={(_id, attrs) => attrs.hidden !== true}
+          autoRegisterEvents={false}
+        />
         <ControlsContainer position='bottom-right' style={{ zIndex: 0 }}>
           <ZoomControl />
           <FullScreenControl labels={{ enter: 'ENTER', exit: 'EXIT' }}>
@@ -116,6 +135,12 @@ export function KGGraphSigmaContainer(
             <MinimizeIcon />
           </FullScreenControl>
         </ControlsContainer>
+        {/* Selection Toolbar - Positioned as overlay in top-left */}
+        <div className='pointer-events-none absolute top-4 left-4 z-10'>
+          <div className='pointer-events-auto rounded-lg border border-gray-200 bg-white shadow-md'>
+            <KGSelectionToolbar selectionPluginRef={selectionPluginRef} />
+          </div>
+        </div>
       </_SigmaContainer>
     </div>
   );

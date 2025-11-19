@@ -7,6 +7,7 @@ import { HIGHLIGHTED_EDGE_COLOR } from '@/lib/data';
 import { FADED_NODE_COLOR, generateTypeColorMap } from '@/lib/graph/knowledge-graph-renderer';
 import { useKGStore } from '@/lib/hooks';
 import type { EdgeAttributes, NodeAttributes } from '@/lib/interface';
+import type { SelectionPluginHandle } from '@/lib/plugins/react-sigma-selection';
 import { Trie } from '@/lib/trie';
 import { KGPopupTable } from './KGPopupTable';
 
@@ -21,7 +22,7 @@ const restoreNodeType = (
   graph.updateNodeAttributes(node, attr => {
     if (highlightedNodes.has(node) || clickedNodes.has(node)) {
       attr.type = 'border';
-      attr.highlighted = highlightedNodes.has(node);
+      attr.highlighted = true;
     } else {
       // Check if border treatment should be applied based on combined Sets
       const nodeType = (attr.nodeType as string) || 'Unknown';
@@ -69,7 +70,6 @@ const clearEdgeHighlight = (
   clickedNodes: Set<string>,
   activePropertyNodeTypes: { color: Set<string>; size: Set<string> },
 ) => {
-  if (!graph.hasEdge(edgeId)) return;
   graph.updateEdgeAttributes(edgeId, attr => {
     attr.color = attr.altColor;
     return attr;
@@ -86,9 +86,11 @@ const clearEdgeHighlight = (
 export function KGGraphEvents({
   clickedNodesRef,
   highlightedNodesRef,
+  selectionPluginRef,
 }: {
   clickedNodesRef: React.RefObject<Set<string>>;
   highlightedNodesRef: React.RefObject<Set<string>>;
+  selectionPluginRef?: React.RefObject<SelectionPluginHandle | null>;
 }) {
   const sigma = useSigma<NodeAttributes, EdgeAttributes>();
   const registerEvents = useRegisterEvents();
@@ -96,12 +98,30 @@ export function KGGraphEvents({
   const [clickedNode, setClickedNode] = useState<string | null>(null);
   const [clickedEdge, setClickedEdge] = useState<string | null>(null);
   const clickedEdgeRef = useRef<string | null>(null);
+  const dragHappenedRef = useRef(false);
   const nodeSearchQuery = useKGStore(state => state.nodeSearchQuery);
   const activePropertyNodeTypes = useKGStore(state => state.activePropertyNodeTypes);
   const highlightNeighborNodes = useKGStore(state => state.highlightNeighborNodes);
   const trieRef = useRef(new Trie<{ key: string; value: string }>());
 
   const { gotoNode } = useCamera();
+
+  // Helper: Clear clicked node state and restore visual state
+  const clearClickedNode = (nodeId: string) => {
+    const graph = sigma.getGraph();
+    clickedNodesRef.current.delete(nodeId);
+    // Clear neighbors from clicked set and restore their state
+    graph.forEachNeighbor(nodeId, (neighbor, _attr) => {
+      clickedNodesRef.current.delete(neighbor);
+      // Don't restore if it's in highlighted/searched nodes
+      if (highlightedNodesRef.current.has(neighbor)) return;
+      // Restore to appropriate type
+      restoreNodeType(graph, neighbor, highlightedNodesRef.current, clickedNodesRef.current, activePropertyNodeTypes);
+    });
+    restoreNodeType(graph, nodeId, highlightedNodesRef.current, clickedNodesRef.current, activePropertyNodeTypes);
+    setClickedNode(null);
+    sigma.refresh();
+  };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: not needed
   useEffect(() => {
@@ -144,13 +164,18 @@ export function KGGraphEvents({
       }
       graph.setNodeAttribute(node, 'type', 'circle');
     }
-    let count = 0;
+    let lastValidNode: string | null = null;
     for (const node of nodeIds) {
       if (previousHighlightedNodes.has(node) || !graph.hasNode(node) || graph.getNodeAttribute(node, 'hidden') === true)
         continue;
       graph.setNodeAttribute(node, 'type', 'border');
       graph.setNodeAttribute(node, 'highlighted', true);
-      if (++count === nodeIds.size) gotoNode(node, { duration: 100 });
+      lastValidNode = node;
+    }
+
+    // Navigate to the last successfully highlighted node
+    if (lastValidNode) {
+      gotoNode(lastValidNode, { duration: 100 });
     }
     highlightedNodesRef.current = nodeIds;
     // Force sigma refresh to update nodeReducer with new highlighted nodes
@@ -180,10 +205,22 @@ export function KGGraphEvents({
 
       // Node drag and drop
       downNode: e => {
+        // If selection mode active, don't allow node drag
+        if (selectionPluginRef?.current?.isActive()) {
+          return;
+        }
         setDraggedNode(e.node);
       },
 
       mousemovebody: e => {
+        // Handle selection plugin events first (if active)
+        const selectionHandlers = selectionPluginRef?.current?.getEventHandlers();
+        if (selectionHandlers) {
+          dragHappenedRef.current = true; // Mark that drag happened
+          selectionHandlers.mousemovebody(e);
+          return; // Don't handle other events during selection
+        }
+
         if (!draggedNode) return;
 
         // Update node position
@@ -197,34 +234,28 @@ export function KGGraphEvents({
         e.original.stopPropagation();
       },
 
+      mousedown: e => {
+        // Handle selection plugin events (if active)
+        const selectionHandlers = selectionPluginRef?.current?.getEventHandlers();
+        if (selectionHandlers) {
+          dragHappenedRef.current = false; // Reset drag flag
+          selectionHandlers.mousedown(e);
+          return; // Don't handle other events during selection
+        }
+      },
+
       mouseup: () => {
+        // Handle selection plugin events first
+        const selectionHandlers = selectionPluginRef?.current?.getEventHandlers();
+        if (selectionHandlers) {
+          selectionHandlers.mouseup();
+          return; // Don't handle other events during selection
+        }
+
         if (draggedNode) {
           setDraggedNode(null);
         } else if (clickedNode) {
-          clickedNodesRef.current.delete(clickedNode);
-          // Clear neighbors from clicked set and restore their state
-          graph.forEachNeighbor(clickedNode, (neighbor, _attr) => {
-            clickedNodesRef.current.delete(neighbor);
-            // Don't restore if it's in highlighted/searched nodes
-            if (highlightedNodesRef.current.has(neighbor)) return;
-            // Restore to appropriate type
-            restoreNodeType(
-              graph,
-              neighbor,
-              highlightedNodesRef.current,
-              clickedNodesRef.current,
-              activePropertyNodeTypes,
-            );
-          });
-          restoreNodeType(
-            graph,
-            clickedNode,
-            highlightedNodesRef.current,
-            clickedNodesRef.current,
-            activePropertyNodeTypes,
-          );
-          setClickedNode(null);
-          sigma.refresh();
+          clearClickedNode(clickedNode);
         } else if (clickedEdgeRef.current) {
           clearEdgeHighlight(
             graph,
@@ -241,6 +272,12 @@ export function KGGraphEvents({
 
       // Node click - show popup with properties and connected edges
       clickNode: e => {
+        // Prevent click if drag just happened during selection
+        if (dragHappenedRef.current) {
+          dragHappenedRef.current = false;
+          return;
+        }
+
         if (clickedEdgeRef.current) {
           clearEdgeHighlight(
             graph,
@@ -374,7 +411,7 @@ export function KGGraphEvents({
   return (
     <>
       {clickedNode && nodePopupData && (
-        <KGPopupTable type='node' nodeData={nodePopupData} onClose={() => setClickedNode(null)} />
+        <KGPopupTable type='node' nodeData={nodePopupData} onClose={() => clearClickedNode(clickedNode)} />
       )}
       {clickedEdge && edgePopupData && (
         <KGPopupTable

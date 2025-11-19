@@ -72,9 +72,9 @@ export interface KGStore {
   defaultLabelSize: number;
 
   /**
-   * Selected nodes in the graph
+   * Selected node IDs in the graph
    */
-  selectedNodes: Array<{ id: string; label: string; nodeType?: string }>;
+  selectedNodes: string[];
 
   /**
    * Selected property for node coloring
@@ -226,7 +226,7 @@ export const useKGStore = create<KGStore>(set => ({
   },
   defaultNodeSize: 5,
   maxDegree: 1,
-  defaultLabelDensity: 3,
+  defaultLabelDensity: 1.5,
   defaultLabelSize: 8,
   selectedNodes: [],
   selectedRadioNodeColor: undefined,

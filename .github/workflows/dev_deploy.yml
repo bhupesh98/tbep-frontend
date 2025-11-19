@@ -1,0 +1,25 @@
+name: Deploy to Saipuram Server
+
+on:
+  push:
+    branches: [tbepv2]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.HOST }}
+          username: ${{secrets.USERNAME }}
+          key: ${{secrets.KEY }}
+          port: ${{secrets.PORT }}
+          script: |
+            set -e
+            cd /root/pdnet/tbep/frontend
+            git switch tbepv2
+            git pull origin tbepv2
+            docker compose up -d --build frontend

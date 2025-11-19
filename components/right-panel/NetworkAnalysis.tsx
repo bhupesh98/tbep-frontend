@@ -33,8 +33,6 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     eventEmitter.on(Events.ALGORITHM_RESULTS, (data: EventMessage[Events.ALGORITHM_RESULTS]) => {
-      console.log(data);
-
       setAlgorithmResults(data);
     });
   }, []);

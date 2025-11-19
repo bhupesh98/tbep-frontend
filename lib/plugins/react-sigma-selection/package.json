@@ -1,0 +1,26 @@
+{
+  "name": "react-sigma-selection",
+  "version": "0.1.0",
+  "description": "Standalone selection plugin for @react-sigma/core with box and lasso selection",
+  "main": "index.ts",
+  "types": "index.ts",
+  "keywords": [
+    "sigma",
+    "sigmajs",
+    "react-sigma",
+    "selection",
+    "box-selection",
+    "lasso-selection",
+    "graph-visualization"
+  ],
+  "author": "Bhupesh Dewangan",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18",
+    "sigma": "^3.0.0",
+    "graphology": ">=0.25",
+    "@react-sigma/core": "^5.0.0",
+    "d3-quadtree": "^3.0.0",
+    "throttleit": "^2.0.0"
+  }
+}

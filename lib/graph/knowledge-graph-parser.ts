@@ -282,8 +282,6 @@ export async function parseSingleCSV(file: File): Promise<SerializedGraph> {
       }
     }
   }
-  console.log(graph.export());
-
   return graph.export();
 }
 

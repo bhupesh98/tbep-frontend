@@ -222,13 +222,11 @@ export async function applyKnowledgeGraphStyling(
 
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic attribute setting requires any type
     graph.setEdgeAttribute(edge, 'type', edgeType as any);
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic attribute setting requires any type
-    graph.setEdgeAttribute(edge, 'curvature', curvature as any);
+    graph.setEdgeAttribute(edge, 'curvature', curvature);
 
     // Set default color if not present
     if (!attributes.color) {
-      // biome-ignore lint/suspicious/noExplicitAny: Dynamic attribute setting requires any type
-      graph.setEdgeAttribute(edge, 'color', DEFAULT_EDGE_COLOR as any);
+      graph.setEdgeAttribute(edge, 'color', DEFAULT_EDGE_COLOR);
     }
   });
 }

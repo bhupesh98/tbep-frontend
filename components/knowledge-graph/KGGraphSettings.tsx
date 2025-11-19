@@ -59,12 +59,23 @@ export function KGGraphSettings({
 
         // Store original label reference
         const originalLabel = data.originalLabel || data.label;
+        if (!data.originalLabel) {
+          data.originalLabel = originalLabel; // Store once for future reference
+        }
+
+        // Truncate long labels to prevent overlap (max 25 characters)
+        const maxLabelLength = 25;
+        const truncateLabel = (label: string | undefined) => {
+          if (!label) return label;
+          return label.length > maxLabelLength ? `${label.substring(0, maxLabelLength)}...` : label;
+        };
 
         // Combine color and size Sets to get all active node types
         const allActiveNodeTypes = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
 
         // Hide labels for non-active node types when a property is applied (unless hovered/clicked/searched)
-        if (allActiveNodeTypes.size > 0 && !isHoveredOrClicked && !isSearched) {
+        // Note: Selection plugin handles its own visual updates via graph.updateNodeAttributes
+        if (allActiveNodeTypes.size > 0 && !isHoveredOrClicked && !isSearched && !data.selectedByPlugin) {
           // If this nodeType doesn't have any active property, hide its label
           if (!allActiveNodeTypes.has(nodeType)) {
             data.label = '';
@@ -73,31 +84,31 @@ export function KGGraphSettings({
 
         // Highlight logic
         if (hoveredNode) {
-          if (node === hoveredNode) {
-            // Hovered node - keep full opacity and restore label
-            data.highlighted = true;
-            data.label = originalLabel;
-            data.forceLabel = true; // Force label to show even if hidden
-          } else if (clickedNodesRef?.current.has(node)) {
-            // Clicked nodes - keep highlighted
+          if (isHoveredOrClicked) {
+            // Clicked nodes - keep highlighted, show full label
             data.highlighted = true;
             data.label = originalLabel;
             data.forceLabel = true; // Force label to show
           } else if (!data.hidden && highlightNeighborNodes && graph.neighbors(hoveredNode).includes(node)) {
-            // Neighbors of hovered node - set to border type
+            // Neighbors of hovered node - set to border type, show truncated label
             data.type = 'border';
             data.highlighted = true;
-            data.label = originalLabel;
+            data.label = truncateLabel(originalLabel);
             data.forceLabel = true; // Force label to show
           } else {
             // Fade other nodes
             data.color = '#E2E2E2';
             data.highlighted = false;
           }
-        } else if ((isHoveredOrClicked || isSearched) && allActiveNodeTypes.size > 0) {
-          // If node is clicked/searched but not currently hovered, restore its label
+        } else if (isSearched && allActiveNodeTypes.size > 0) {
+          // If node is searched but not currently hovered, restore its label (full label, no truncation)
           data.label = originalLabel;
           data.forceLabel = true;
+        }
+
+        // Apply truncation to all visible labels (unless force label is set for hover/click/search)
+        if (data.label && !data.forceLabel && !isSearched) {
+          data.label = truncateLabel(data.label);
         }
 
         return data;
@@ -115,7 +126,7 @@ export function KGGraphSettings({
         return data;
       },
     });
-  }, [hoveredNode, setSettings, sigma, clickedNodesRef, activePropertyNodeTypes]);
+  }, [hoveredNode, setSettings, clickedNodesRef, activePropertyNodeTypes]);
 
   return null;
 }

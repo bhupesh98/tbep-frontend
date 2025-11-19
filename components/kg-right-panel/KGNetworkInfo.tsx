@@ -59,7 +59,6 @@ export function KGNetworkInfo() {
       setConnectedEdges([]);
     } else {
       // Show connected edges for selected nodes
-      const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
       const edges: Array<{
         source: string;
         target: string;
@@ -68,10 +67,17 @@ export function KGNetworkInfo() {
         edgeType?: string;
       }> = [];
 
-      for (const nodeId of selectedNodeIds) {
+      // Use a Set to avoid duplicate edges
+      const edgeSet = new Set<string>();
+
+      for (const nodeId of selectedNodes) {
         if (!graph.hasNode(nodeId)) continue;
 
         graph.forEachEdge(nodeId, (edge, _attributes, source, target) => {
+          // Skip if we've already added this edge
+          if (edgeSet.has(edge)) return;
+          edgeSet.add(edge);
+
           const edgeAttrs = graph.getEdgeAttributes(edge);
           const sourceAttrs = graph.getNodeAttributes(source);
           const targetAttrs = graph.getNodeAttributes(target);
@@ -91,9 +97,24 @@ export function KGNetworkInfo() {
     setShowTable(true);
   };
 
-  const displayNodes = selectedNodes.length > 0 ? selectedNodes : allNodes;
+  // Convert selected node IDs to full node objects for display
+  const selectedNodesWithData =
+    selectedNodes.length > 0 && sigmaInstance
+      ? selectedNodes.map(id => {
+          const graph = sigmaInstance.getGraph();
+          if (!graph.hasNode(id)) return { id, label: id, nodeType: undefined };
+          const attrs = graph.getNodeAttributes(id);
+          return {
+            id,
+            label: attrs.label || id,
+            nodeType: attrs.nodeType,
+          };
+        })
+      : [];
+
+  const displayNodes = selectedNodes.length > 0 ? selectedNodesWithData : allNodes;
   const displayEdges = selectedNodes.length > 0 ? connectedEdges : allEdges;
-  const buttonText = selectedNodes.length > 0 ? `Selected Nodes Details (${selectedNodes.length})` : `All Network Data`;
+  const buttonText = selectedNodes.length > 0 ? `Selected Nodes (${selectedNodes.length})` : `All Network Data`;
 
   return (
     <div className='mb-2 rounded border p-2 text-xs shadow-sm'>

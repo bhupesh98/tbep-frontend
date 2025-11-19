@@ -38,4 +38,5 @@ function Toggle({
   );
 }
 
-export { Toggle };
+// biome-ignore lint/style/useComponentExportOnlyModules: necessary export
+export { Toggle, toggleVariants };
