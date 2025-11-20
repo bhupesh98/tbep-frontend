@@ -7,6 +7,7 @@ import { toUndirected } from 'graphology-operators';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { generateTypeColorMap } from '@/lib/graph';
+import { computeDWPC, findAllPaths } from '@/lib/graph/algorithms';
 import { useKGStore } from '@/lib/hooks';
 import type { EdgeAttributes, NodeAttributes } from '@/lib/interface';
 import { type EventMessage, Events, eventEmitter } from '@/lib/utils';
@@ -24,17 +25,40 @@ export function KGGraphAnalysis() {
     {},
   );
 
+  // Store original node sizes to prevent accumulation
+  const originalNodeSizes = (() => {
+    const sizeMap = new Map<string, number>();
+    const defaultNodeSize = useKGStore.getState().defaultNodeSize;
+    graph.forEachNode((node, attr) => {
+      sizeMap.set(node, attr.size || defaultNodeSize);
+    });
+    return sizeMap;
+  })();
+
   // Listen for ALGORITHM events
   useEffect(() => {
     const handleAlgorithm = async ({ name, parameters }: EventMessage[Events.ALGORITHM]) => {
       if (name === 'None') {
         setCommunityMap({});
         const typeColorMap = generateTypeColorMap(graph);
-        graph.updateEachNodeAttributes((_node, attr) => {
+
+        // Reset all node attributes
+        graph.updateEachNodeAttributes((node, attr) => {
           attr.color = typeColorMap.get(attr.nodeType as string) || undefined;
           attr.community = undefined;
+          attr.type = undefined;
+          attr.highlighted = false;
+          attr.size = originalNodeSizes.get(node) || attr.size || 5;
           return attr;
         });
+
+        // Reset all edge attributes
+        graph.updateEachEdgeAttributes((_edge, attr) => {
+          attr.color = undefined;
+          attr.size = undefined;
+          return attr;
+        });
+
         return;
       }
 
@@ -145,13 +169,205 @@ export function KGGraphAnalysis() {
           });
         }
       }
-    };
 
+      if (name === 'DWPC') {
+        setCommunityMap({});
+
+        const { source, target, maxHops, damping, maxPaths } = parameters!;
+
+        try {
+          // Convert label to ID if needed
+          const sourceId =
+            graph.findNode((node: string, attr: NodeAttributes) => attr.label === source || node === source) || source;
+          const targetId =
+            graph.findNode((node: string, attr: NodeAttributes) => attr.label === target || node === target) || target;
+
+          const result = computeDWPC(graph, {
+            source: sourceId,
+            target: targetId,
+            maxHops: +maxHops,
+            damping: +damping,
+            maxPaths: +maxPaths,
+          });
+
+          // Handle case where no paths found within maxHops
+          if (result.minHopsNeeded) {
+            toast.error('No paths found within hop limit', {
+              description: `At least ${result.minHopsNeeded} hops needed. Increase Maximum Hops to ${result.minHopsNeeded} or more.`,
+              duration: 5000,
+            });
+            return;
+          }
+
+          eventEmitter.emit(Events.ALGORITHM_RESULTS, {
+            dwpcScore: result.dwpcScore,
+            pathCount: result.pathCount,
+            paths: result.paths,
+            allMetapaths: result.allMetapaths,
+            damping: result.damping,
+            timedOut: result.timedOut,
+          } as EventMessage[Events.ALGORITHM_RESULTS]);
+
+          toast.success('DWPC computation completed', {
+            description: `Found ${result.pathCount} paths, DWPC score: ${result.dwpcScore.toFixed(4)}`,
+          });
+
+          // Reset all node colors first
+          const typeColorMap = generateTypeColorMap(graph);
+          graph.updateEachNodeAttributes((_node, attr) => {
+            attr.color = typeColorMap.get(attr.nodeType as string) || undefined;
+            attr.highlighted = false;
+            attr.zIndex = undefined;
+            return attr;
+          });
+
+          // Reset all edge attributes
+          graph.updateEachEdgeAttributes((_edge, attr) => {
+            attr.color = undefined;
+            attr.size = undefined;
+            attr.zIndex = undefined;
+            return attr;
+          });
+
+          // Highlight paths with gradient colors
+          const pathNodes = new Set<string>();
+          const colors = ['#ff6b6b', '#fa5252', '#f03e3e', '#e03131', '#c92a2a'];
+
+          result.paths.forEach((path, pathIdx) => {
+            const pathColor = colors[pathIdx % colors.length];
+            path.nodes.forEach(node => {
+              pathNodes.add(node);
+              if (graph.hasNode(node)) {
+                graph.setNodeAttribute(node, 'color', pathColor);
+                graph.setNodeAttribute(node, 'highlighted', true);
+                graph.setNodeAttribute(node, 'zIndex', 100); // Increase z-index
+                graph.setNodeAttribute(node, 'type', 'border');
+                // Make nodes bigger using original size
+                const originalSize = originalNodeSizes.get(node) || 5;
+                graph.setNodeAttribute(node, 'size', originalSize * 1.5);
+              }
+            });
+
+            // Highlight edges in path with increased z-index
+            for (let i = 0; i < path.nodes.length - 1; i++) {
+              const edges = graph.edges(path.nodes[i], path.nodes[i + 1]);
+              edges.forEach(edge => {
+                graph.setEdgeAttribute(edge, 'color', pathColor);
+                graph.setEdgeAttribute(edge, 'size', 3);
+                graph.setEdgeAttribute(edge, 'zIndex', 100); // Increase z-index
+              });
+            }
+          });
+
+          // Fit viewport to highlighted nodes
+          if (pathNodes.size > 0) {
+            fitViewportToNodes(sigma, Array.from(pathNodes), { animate: true });
+          }
+        } catch (error) {
+          console.error('DWPC error:', error);
+          toast.error('Failed to compute DWPC', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      if (name === 'Path Finding') {
+        setCommunityMap({});
+
+        const { source, target, maxDepth, maxPaths } = parameters!;
+
+        try {
+          // Convert label to ID if needed
+          const sourceId =
+            graph.findNode((node: string, attr: NodeAttributes) => attr.label === source || node === source) || source;
+          const targetId =
+            graph.findNode((node: string, attr: NodeAttributes) => attr.label === target || node === target) || target;
+
+          // Reset all node colors first
+          const typeColorMap = generateTypeColorMap(graph);
+          graph.updateEachNodeAttributes((_node, attr) => {
+            attr.color = typeColorMap.get(attr.nodeType as string) || undefined;
+            attr.highlighted = false;
+            attr.zIndex = undefined;
+            return attr;
+          });
+
+          // Reset all edge attributes
+          graph.updateEachEdgeAttributes((_edge, attr) => {
+            attr.color = undefined;
+            attr.size = undefined;
+            attr.zIndex = undefined;
+            return attr;
+          });
+
+          const paths = findAllPaths(graph, sourceId, targetId, +maxDepth, +maxPaths);
+
+          if (paths.length === 0) {
+            toast.error('No paths found between nodes');
+            return;
+          }
+
+          // Paths are already sorted by length from findAllPaths
+          eventEmitter.emit(Events.ALGORITHM_RESULTS, {
+            pathCount: paths.length,
+            paths: paths.map(p => ({
+              nodes: p.path,
+              labels: p.labels,
+              length: p.length,
+              nodeTypes: p.nodeTypes,
+            })),
+          } as EventMessage[Events.ALGORITHM_RESULTS]);
+
+          const pathNodes = new Set<string>();
+          const colors = ['#51cf66', '#40c057', '#37b24d', '#2f9e44', '#2b8a3e'];
+
+          // Highlight all paths with different colors
+          paths.forEach((path, pathIdx) => {
+            const pathColor = colors[pathIdx % colors.length];
+            path.path.forEach(node => {
+              pathNodes.add(node);
+              if (graph.hasNode(node)) {
+                graph.setNodeAttribute(node, 'color', pathColor);
+                graph.setNodeAttribute(node, 'highlighted', true);
+                graph.setNodeAttribute(node, 'type', 'border');
+                graph.setNodeAttribute(node, 'zIndex', 100); // Increase z-index
+                const originalSize = originalNodeSizes.get(node) || 5;
+                graph.setNodeAttribute(node, 'size', originalSize * 1.5);
+              }
+            });
+
+            // Highlight edges with increased z-index
+            for (let i = 0; i < path.path.length - 1; i++) {
+              const edges = graph.edges(path.path[i], path.path[i + 1]);
+              edges.forEach(edge => {
+                graph.setEdgeAttribute(edge, 'color', pathColor);
+                graph.setEdgeAttribute(edge, 'size', 3);
+                graph.setEdgeAttribute(edge, 'zIndex', 100); // Increase z-index
+              });
+            }
+          });
+
+          toast.success('Path finding completed', {
+            description: `Found ${paths.length} path(s), showing first ${Math.min(5, paths.length)}`,
+          });
+
+          // Fit viewport to highlighted nodes
+          if (pathNodes.size > 0) {
+            fitViewportToNodes(sigma, Array.from(pathNodes), { animate: true });
+          }
+        } catch (error) {
+          console.error('Path finding error:', error);
+          toast.error('Failed to find path', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+    };
     eventEmitter.on(Events.ALGORITHM, handleAlgorithm);
     return () => {
       eventEmitter.off(Events.ALGORITHM, handleAlgorithm);
     };
-  }, [graph]);
+  }, [graph, sigma, originalNodeSizes]);
 
   // Helper to get readable text color
   const getReadableTextColor = useCallback((hex: string) => {

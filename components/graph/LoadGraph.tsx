@@ -1,6 +1,7 @@
 'use client';
 import { useLazyQuery } from '@apollo/client/react';
-import { useLoadGraph } from '@react-sigma/core';
+import { useLoadGraph, useSigma } from '@react-sigma/core';
+import type EventEmitter from 'events';
 import Graph from 'graphology';
 import type { SerializedGraph } from 'graphology-types';
 import { AlertTriangleIcon } from 'lucide-react';
@@ -42,6 +43,9 @@ export function LoadGraph() {
 
   const [fetchFileData] = useLazyQuery<GeneVerificationData, GeneVerificationVariables>(GENE_VERIFICATION_QUERY);
   const [showWarning, setShowWarning] = React.useState<boolean>(false);
+
+  const sigma = useSigma();
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: No need of extra deps
   React.useEffect(() => {
     const abortController = new AbortController();
@@ -219,6 +223,7 @@ export function LoadGraph() {
           if (transformedData) {
             graph.import(transformedData);
             loadGraph(graph);
+            (sigma as EventEmitter).emit('loaded');
             const geneNameToID = new Map<string, string>();
             for (const gene of genes) {
               if (gene.Gene_name) geneNameToID.set(gene.Gene_name, gene.ID);

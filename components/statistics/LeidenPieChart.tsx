@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload }: TooltipContentProps<ValueType, NameT
   return null;
 };
 
-export function LeidenPieChart({ data }: { data: EventMessage[Events.ALGORITHM_RESULTS]['communities'] }) {
+export function LeidenPieChart({ data = [] }: { data: EventMessage[Events.ALGORITHM_RESULTS]['communities'] }) {
   const [selectedClusterIndex, setSelectedClusterIndex] = useState<number | null>(null);
 
   return (

@@ -56,6 +56,7 @@ export function KGPopupTable({ type, nodeData, edgeData, onClose }: KGPopupTable
                       ![
                         'x',
                         'y',
+                        'ID',
                         'size',
                         'color',
                         'highlighted',
@@ -101,7 +102,7 @@ export function KGPopupTable({ type, nodeData, edgeData, onClose }: KGPopupTable
                         </div>
                         {Object.entries(edgeAttr)
                           .filter(
-                            ([key]) =>
+                            ([key, val]) =>
                               ![
                                 'color',
                                 'altColor',
@@ -115,7 +116,7 @@ export function KGPopupTable({ type, nodeData, edgeData, onClose }: KGPopupTable
                                 'parallelIndex',
                                 'parallelMinIndex',
                                 'parallelMaxIndex',
-                              ].includes(key),
+                              ].includes(key) && val !== undefined,
                           )
                           .map(([key, value]) => (
                             <div key={key}>
@@ -168,10 +169,20 @@ export function KGPopupTable({ type, nodeData, edgeData, onClose }: KGPopupTable
 
                 {Object.entries(sourceAttributes)
                   .filter(
-                    ([key]) =>
-                      !['x', 'y', 'size', 'color', 'highlighted', 'hidden', 'type', 'zIndex', 'forceLabel'].includes(
-                        key,
-                      ),
+                    ([key, val]) =>
+                      ![
+                        'x',
+                        'y',
+                        'ID',
+                        'size',
+                        'color',
+                        'highlighted',
+                        'hidden',
+                        'type',
+                        'zIndex',
+                        'forceLabel',
+                        'originalLabel',
+                      ].includes(key) && val !== undefined,
                   )
                   .map(([key, value]) => (
                     <div key={key}>
@@ -235,10 +246,20 @@ export function KGPopupTable({ type, nodeData, edgeData, onClose }: KGPopupTable
 
                 {Object.entries(targetAttributes)
                   .filter(
-                    ([key]) =>
-                      !['x', 'y', 'size', 'color', 'highlighted', 'hidden', 'type', 'zIndex', 'forceLabel'].includes(
-                        key,
-                      ),
+                    ([key, val]) =>
+                      ![
+                        'x',
+                        'y',
+                        'ID',
+                        'size',
+                        'color',
+                        'highlighted',
+                        'hidden',
+                        'type',
+                        'zIndex',
+                        'forceLabel',
+                        'originalLabel',
+                      ].includes(key) && val !== undefined,
                   )
                   .map(([key, value]) => (
                     <div key={key}>

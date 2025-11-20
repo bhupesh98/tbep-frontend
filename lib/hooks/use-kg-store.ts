@@ -22,17 +22,9 @@ export interface KGStore {
 
   /**
    * Active properties tracking which nodeTypes have properties applied
-   * Tracks both color and size properties separately
+   * Array of nodeTypes that have color or size properties applied
    */
-  activePropertyNodeTypes: {
-    color: Set<string>; // NodeTypes with color property applied
-    size: Set<string>; // NodeTypes with size property applied
-  };
-
-  /**
-   * Set of node IDs currently in the graph
-   */
-  nodeNames: Set<string>;
+  activePropertyNodeTypes: string[];
 
   /**
    * Force Layout worker
@@ -77,12 +69,12 @@ export interface KGStore {
   selectedNodes: string[];
 
   /**
-   * Selected property for node coloring
+   * Selected radio button for node coloring
    */
   selectedRadioNodeColor: string | undefined;
 
   /**
-   * Selected property for node sizing
+   * Selected radio button for node sizing
    */
   selectedRadioNodeSize: string | undefined;
 
@@ -211,12 +203,8 @@ export const useKGStore = create<KGStore>(set => ({
   sigmaInstance: null,
 
   // Active property tracking
-  activePropertyNodeTypes: {
-    color: new Set(),
-    size: new Set(),
-  },
+  activePropertyNodeTypes: [],
 
-  nodeNames: new Set(),
   forceWorker: {
     start() {},
     stop() {},

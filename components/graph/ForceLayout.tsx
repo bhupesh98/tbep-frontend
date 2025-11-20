@@ -31,16 +31,8 @@ export function ForceLayout() {
     }
   }, [graph]);
 
-  useEffect(() => {
-    sigma.on('afterRender', () => {
-      if (!sigma.getGraph().order) return;
-      (sigma as EventEmitter).emit('loaded');
-    });
-  }, [sigma]);
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: I won't write reason
   useEffect(() => {
-    if (!sigma) return;
     (sigma as EventEmitter).once('loaded', () => {
       const graph = sigma.getGraph();
       nodes.current = graph.mapNodes(node => ({

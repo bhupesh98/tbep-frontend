@@ -234,6 +234,7 @@ export async function parseSingleCSV(file: File): Promise<SerializedGraph> {
     // Add source node (deduplicate)
     if (!graph.hasNode(sourceId)) {
       graph.addNode(sourceId, {
+        ID: sourceId,
         label: sourceName,
         ...(sourceType && { nodeType: sourceType }),
         ...sourceAttrs,
@@ -246,6 +247,7 @@ export async function parseSingleCSV(file: File): Promise<SerializedGraph> {
     // Add target node (deduplicate)
     if (!graph.hasNode(targetId)) {
       graph.addNode(targetId, {
+        ID: targetId,
         label: targetName,
         ...(targetType && { nodeType: targetType }),
         ...targetAttrs,
@@ -392,6 +394,7 @@ export async function parseTwoCSV(nodesFile: File, edgesFile: File): Promise<Ser
     }
 
     graph.addNode(nodeId, {
+      ID: nodeId,
       label: nodeName,
       ...(nodeType && { nodeType }),
       ...nodeAttrs,
@@ -419,10 +422,10 @@ export async function parseTwoCSV(nodesFile: File, edgesFile: File): Promise<Ser
 
     // Create nodes if they don't exist (auto-create missing nodes)
     if (!graph.hasNode(sourceId)) {
-      graph.addNode(sourceId, { label: sourceId });
+      graph.addNode(sourceId, { ID: sourceId, label: sourceId });
     }
     if (!graph.hasNode(targetId)) {
-      graph.addNode(targetId, { label: targetId });
+      graph.addNode(targetId, { ID: targetId, label: targetId });
     }
     // Determine if edge should be undirected
     const forwardKey = `${sourceId}->${targetId}`;
@@ -464,6 +467,10 @@ export async function parseGraphML(file: File): Promise<SerializedGraph> {
 
   try {
     const graph = parse(Graph, text);
+    graph.updateEachNodeAttributes((node, attr) => {
+      attr.ID = node;
+      return attr;
+    });
     return graph.export();
   } catch (error) {
     throw new Error(`GraphML parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -479,6 +486,10 @@ export async function parseGEXF(file: File): Promise<SerializedGraph> {
 
   try {
     const graph = parse(Graph, text);
+    graph.updateEachNodeAttributes((node, attr) => {
+      attr.ID = node;
+      return attr;
+    });
     return graph.export();
   } catch (error) {
     throw new Error(`GEXF parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`);

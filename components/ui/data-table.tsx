@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[];
-  data: TData[];
+  data?: TData[];
   filterColumnName?: string | string[];
   loading?: boolean;
   placeholder?: string;
@@ -29,7 +29,7 @@ interface DataTableProps<TData> {
 
 export function DataTable<TData>({
   columns,
-  data,
+  data = [],
   placeholder,
   filterColumnName,
   loading = false,
@@ -110,7 +110,6 @@ export function DataTable<TData>({
               `Filter by ${Array.isArray(filterColumnName) ? filterColumnName.join(', ').replace(/_/g, ' ') : filterColumnName.replace('_', ' ')}`
             }
             value={globalFilter}
-            // onChange={event => table.getColumn(filterColumnName)?.setFilterValue(event.target.value)}
             onChange={event => setGlobalFilter(event.target.value)}
             className='max-w-sm'
           />

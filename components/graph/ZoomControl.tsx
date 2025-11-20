@@ -23,7 +23,13 @@ export function ZoomControl() {
       <div className='react-sigma-control'>
         <button
           type='button'
-          onClick={() => fitViewportToNodes(sigma, sigma.getGraph().nodes(), { animate: true })}
+          onClick={() =>
+            fitViewportToNodes(
+              sigma,
+              sigma.getGraph().filterNodes((_node, attr) => !attr.hidden),
+              { animate: true },
+            )
+          }
           title='Reset'
         >
           <FocusIcon />

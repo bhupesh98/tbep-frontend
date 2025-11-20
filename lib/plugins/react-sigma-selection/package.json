@@ -1,6 +1,7 @@
 {
   "name": "react-sigma-selection",
   "version": "0.1.0",
+  "readme": "README.md",
   "description": "Standalone selection plugin for @react-sigma/core with box and lasso selection",
   "main": "index.ts",
   "types": "index.ts",

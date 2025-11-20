@@ -260,21 +260,16 @@ export const FADED_NODE_COLOR = '#E2E2E2';
  * Preserves original colors from typeColorMap
  *
  * @param graph - The graph instance
- * @param activeColorNodeTypes - Set of nodeTypes with color property applied
- * @param activeSizeNodeTypes - Set of nodeTypes with size property applied
+ * @param activePropertyNodeTypes - Array of nodeTypes with properties applied
  * @param typeColorMap - Map of nodeType to their original colors (from generateTypeColorMap)
  */
 export function applySmartBorderTreatment(
   graph: Graph<NodeAttributes, EdgeAttributes, Attributes>,
-  activeColorNodeTypes: Set<string>,
-  activeSizeNodeTypes: Set<string>,
+  activePropertyNodeTypes: string[],
   typeColorMap: Map<string, string>,
 ): void {
-  // Combine both active property sets
-  const allActiveNodeTypes = new Set([...activeColorNodeTypes, ...activeSizeNodeTypes]);
-
   // If no properties applied, restore all to normal
-  if (allActiveNodeTypes.size === 0) {
+  if (activePropertyNodeTypes.length === 0) {
     graph.updateEachNodeAttributes((_node, attr) => {
       const nodeType = (attr.nodeType as string) || 'Unknown';
       attr.type = 'circle';
@@ -286,6 +281,8 @@ export function applySmartBorderTreatment(
     return;
   }
 
+  // Convert array to Set for fast lookups
+  const allActiveNodeTypes = new Set(activePropertyNodeTypes);
   // Apply border treatment to inactive nodeTypes
   graph.updateEachNodeAttributes((_node, attr) => {
     const nodeType = (attr.nodeType as string) || 'Unknown';
@@ -309,17 +306,4 @@ export function applySmartBorderTreatment(
 
     return attr;
   });
-}
-
-/**
- * @deprecated Use applySmartBorderTreatment instead
- * Kept for backward compatibility
- */
-export function applyInactiveNodeBorderTreatment(
-  graph: Graph<NodeAttributes, EdgeAttributes, Attributes>,
-  activePropertyNodeType: string | null,
-  typeColorMap: Map<string, string>,
-): void {
-  const activeSet = activePropertyNodeType ? new Set([activePropertyNodeType]) : new Set<string>();
-  applySmartBorderTreatment(graph, activeSet, new Set(), typeColorMap);
 }

@@ -365,6 +365,40 @@ export const columnKGTop10ByPageRank: ColumnDef<Record<string, string>>[] = [
   },
 ];
 
+export const columnPathResults: ColumnDef<Record<string, string>>[] = [
+  {
+    accessorKey: 'pathNumber',
+    header: headerHelper('Path #'),
+    meta: { textAlign: 'center', width: '5rem' },
+  },
+  {
+    accessorKey: 'length',
+    header: headerHelper('Length'),
+    sortingFn: (a, b) => Number(a.original.length) - Number(b.original.length),
+    meta: { textAlign: 'center', width: '6rem' },
+  },
+  {
+    accessorKey: 'weight',
+    header: headerHelper('Weight'),
+    sortingFn: (a, b) => {
+      const aWeight = a.original.weight === 'N/A' ? -1 : Number(a.original.weight);
+      const bWeight = b.original.weight === 'N/A' ? -1 : Number(b.original.weight);
+      return aWeight - bWeight;
+    },
+    meta: { textAlign: 'center', width: '8rem' },
+  },
+  {
+    accessorKey: 'nodes',
+    header: headerHelper('Nodes (Labels)'),
+    meta: { wordBreak: 'break-word' },
+  },
+  {
+    accessorKey: 'nodeTypes',
+    header: headerHelper('Node Types'),
+    meta: { wordBreak: 'break-word' },
+  },
+];
+
 const prioritizationKeys = [
   'Target in clinic',
   'Membrane protein',

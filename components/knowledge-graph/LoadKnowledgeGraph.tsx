@@ -1,6 +1,7 @@
 'use client';
 
-import { useLoadGraph } from '@react-sigma/core';
+import { useLoadGraph, useSigma } from '@react-sigma/core';
+import type EventEmitter from 'events';
 import Graph from 'graphology';
 import type { SerializedGraph } from 'graphology-types';
 import React from 'react';
@@ -19,6 +20,7 @@ export function LoadKnowledgeGraph() {
   const loadGraph = useLoadGraph();
   const [loading, setLoading] = React.useState(true);
   const setNetworkStatistics = useKGStore(state => state.setNetworkStatistics);
+  const sigma = useSigma();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadGraph stable
   React.useEffect(() => {
@@ -50,7 +52,7 @@ export function LoadKnowledgeGraph() {
               action: {
                 label: 'Go to Upload',
                 onClick: () => {
-                  window.location.href = '/?tab=knowledge-graph';
+                  window.location.href = '/explore?tab=knowledge-graph';
                 },
               },
             });
@@ -77,7 +79,7 @@ export function LoadKnowledgeGraph() {
 
           // Load into Sigma
           loadGraph(graph);
-
+          (sigma as EventEmitter).emit('loaded');
           setNetworkStatistics({ totalNodes: graph.order, totalEdges: graph.size });
 
           setLoading(false);

@@ -72,8 +72,8 @@ export type EventMessage = {
     csvType?: 'universal' | 'interaction' | 'both';
   };
   [Events.ALGORITHM_RESULTS]: {
-    modularity: number;
-    communities: Array<{
+    modularity?: number;
+    communities?: Array<{
       name: string;
       nodes: string[];
       color: string;
@@ -81,7 +81,24 @@ export type EventMessage = {
       averageDegree: string;
       degreeCentralNode: string;
     }>;
-    resolution: number;
+    resolution?: number;
+    dwpcScore?: number;
+    pathCount?: number;
+    paths?: Array<{
+      nodes: string[];
+      labels: string[];
+      weight?: number;
+      length?: number;
+      nodeTypes?: string[];
+    }>;
+    metapath?: string[];
+    allMetapaths?: string[][];
+    damping?: number;
+    timedOut?: boolean;
+    minHopsNeeded?: number;
+    subgraphNodeCount?: number;
+    subgraphEdgeCount?: number;
+    depth?: number;
   };
   [Events.VISIBLE_NODES_RESULTS]: {
     visibleNodeGeneIds: Set<string>;

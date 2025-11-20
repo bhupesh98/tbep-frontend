@@ -1,399 +1,292 @@
 # TBEP Frontend - AI Coding Agent Instructions
 
 ## Project Overview
-**Target & Biomarker Exploration Portal (TBEP)** - A Next.js 16 bioinformatics platform for drug target discovery and network visualization using interactive graphs powered by Sigma.js and graphology.
+**Target & Biomarker Exploration Portal (TBEP)** - Next.js 16 bioinformatics platform for drug target discovery with interactive network visualization (Sigma.js + graphology) and AI-powered analysis.
 
-## Architecture
+## Tech Stack
+- **Framework**: Next.js 16 App Router, static export (`output: "export"`)
+- **UI**: React 19, Tailwind CSS, Radix UI, shadcn/ui, lucide-react icons
+- **Graph**: Sigma.js 3.x (`@react-sigma/core`), graphology, D3-force layout
+- **Data**: Apollo Client (GraphQL), IndexedDB, localStorage
+- **State**: Zustand (`lib/hooks/use-store.ts` for gene graphs, `useKGStore` for knowledge graphs)
+- **AI**: Vercel AI SDK with streaming (`components/chat/`, `ai-elements/`)
+- **Code Quality**: Biome (NOT ESLint), Husky pre-commit hooks
 
-### Core Stack
-- **Framework**: Next.js 16 (App Router) with static export (`output: "export"`)
-- **UI**: React 19, Tailwind CSS, Radix UI components, shadcn/ui patterns
-- **Graph**: Sigma.js 3.x with `@react-sigma/core`, graphology for network analysis
-- **Data**: Apollo Client for GraphQL queries to backend microservices
-- **State**: Zustand store (`lib/hooks/use-store.ts`) for global graph state
-- **AI Chat**: Vercel AI SDK with streaming responses (`components/chat/`)
+## Service Architecture
+Three backend services accessed via environment variables (validated with `envURL()` from `lib/utils.ts`):
 
-### Service Architecture (Backend URLs)
-The app communicates with 3 separate backend services via environment variables:
-- `NEXT_PUBLIC_BACKEND_URL` - Main GraphQL API (gene data, interactions, Leiden clustering)
-- `NEXT_PUBLIC_LLM_BACKEND_URL` - AI chat endpoint (streaming responses)
-- `NEXT_PUBLIC_PYTHON_BACKEND_URL` - Python analytics service (GSEA pathway analysis only)
+| Service | Variable | Purpose | API Type |
+|---------|----------|---------|----------|
+| Main Backend | `NEXT_PUBLIC_BACKEND_URL` | Gene data, interactions, Leiden clustering | GraphQL + REST |
+| LLM Backend | `NEXT_PUBLIC_LLM_BACKEND_URL` | AI chat (streaming responses) | REST |
+| Python Backend | `NEXT_PUBLIC_PYTHON_BACKEND_URL` | GSEA pathway analysis ONLY | REST |
 
-All backend calls use the `envURL()` helper from `lib/utils.ts` to validate URLs.
+**Critical**: Leiden clustering is on main backend (GET), NOT Python backend. GSEA uses Python backend (POST with JSON).
 
-**Python Backend Integration**: Uses REST API with JSON payloads:
+## Data Flow & Storage
+
+### Client-Side Storage
+- **localStorage**: `graphConfig` (network settings), `history` (user searches), UI preferences
+- **IndexedDB**: Full network data (`universal` database with `network` and `files` stores)
+- Helper: `openDB(name, mode)` from `lib/utils.ts`
+
+### Typical Flow
+1. **Explore Page** (`app/(navbar)/(sidebar)/explore/page.tsx`) → Validate genes via `GENE_VERIFICATION_QUERY`
+2. **Generate Graph** → `GENE_GRAPH_QUERY`, store config in `localStorage.graphConfig`
+3. **Network Page** (`app/network/page.tsx`) → Load from IndexedDB, render in `SigmaContainer` (dynamic import, SSR disabled)
+4. **Analysis** → Fetch properties with `useLazyQuery`, update Zustand store
+
+## Critical Patterns
+
+### GraphQL (Apollo Client)
 ```tsx
-// GSEA pathway analysis - POST with gene names array
-const response = await fetch(`${envURL(process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL)}/gsea`, {
-  method: 'POST',
-  body: JSON.stringify(geneNames),
-  headers: { 'Content-Type': 'application/json' },
-  cache: 'force-cache',
-});
-```
-Leiden clustering is NOT on Python backend - it's a GET endpoint on main backend.
-
-### Data Flow
-1. **User Input** (`app/(navbar)/(sidebar)/explore/page.tsx`) → Validate genes via GraphQL
-2. **Graph Generation** → Query `GENE_GRAPH_QUERY`, store config in `localStorage.graphConfig`
-3. **Network Page** (`app/network/page.tsx`) → Load from IndexedDB, render in `SigmaContainer`
-4. **Analysis** → Fetch properties on-demand via `useLazyQuery`, update Zustand store
-
-## Critical Patterns & Conventions
-
-### GraphQL Usage
-```tsx
-// Always use useLazyQuery for on-demand fetching
+// ALWAYS use useLazyQuery for on-demand fetching
 import { useLazyQuery } from '@apollo/client/react';
 const [fetchData, { loading }] = useLazyQuery<DataType, VariablesType>(QUERY);
 ```
-Queries defined in `lib/gql.ts`: `GENE_GRAPH_QUERY`, `GENE_PROPERTIES_QUERY`, etc.
+Queries in `lib/gql.ts`: `GENE_GRAPH_QUERY`, `GENE_PROPERTIES_QUERY`, `TOP_GENES_QUERY`, etc.
 
 ### State Management (Zustand)
 ```tsx
-// Import store from lib/hooks
 import { useStore } from '@/lib/hooks';       // Gene graph state
 import { useKGStore } from '@/lib/hooks';     // Knowledge graph state
-// Shallow equality for array/object selectors
 import { useShallow } from 'zustand/react/shallow';
-const geneIds = useStore(useShallow(state => state.geneNames.map(g => state.geneNameToID.get(g) ?? g)));
+
+// ALWAYS use shallow for array/object selectors
+const geneIds = useStore(useShallow(state => 
+  state.geneNames.map(g => state.geneNameToID.get(g) ?? g)
+));
 ```
 
-**Gene Graph Store (`useStore`):**
-- Properties: `selectedNodes`, `networkStatistics`, `radioOptions`, `defaultNodeColor`, `forceSettings`
-- Gene-specific data: `universalData`, `geneNames`, `geneNameToID`, `diseaseName`
+**Key Store Properties**:
+- **useStore**: `selectedNodes`, `networkStatistics`, `geneNames`, `universalData`, `radioOptions`
+- **useKGStore**: `nodePropertyData`, `sigmaInstance`, `activePropertyNodeTypes: string[]`
 
-**Knowledge Graph Store (`useKGStore`):**
-- Properties: `nodePropertyData`, `kgPropertyOptions`, `sigmaInstance`
-- Border treatment: `activePropertyNodeTypes: { color: Set<string>, size: Set<string> }`
-- Node search: `nodeSearchQuery`, `nodeSuggestions`
-- **CRITICAL**: `activePropertyNodeTypes` uses Sets to track which node types have active properties independently for color and size
+## Component Architecture
 
-### Client-Side Storage
-- **localStorage**: Graph config (`graphConfig`), user history (`history`), UI preferences
-- **IndexedDB**: Full network data in `universal` database with `network` and `files` stores
-- Helper: `openDB(name, mode)` from `lib/utils.ts`
-
-### Component Organization
 ```
 components/
-├── graph/             # Core graph logic (LoadGraph, SigmaContainer, GraphAnalysis)
-├── knowledge-graph/   # KG-specific components (KGSigmaContainer, KGColorAnalysis, KGSizeAnalysis)
-├── left-panel/        # Gene search, node styling controls
-├── right-panel/       # Network stats, layout controls, legends
-├── legends/           # NodeTypeLegend, EdgeTypeLegend - always-visible legends
+├── graph/             # Gene network (LoadGraph, SigmaContainer, GraphAnalysis)
+├── knowledge-graph/   # KG-specific (KGSigmaContainer, KGColorAnalysis, KGBorderTreatment)
+├── ai-elements/       # Vercel AI SDK UI primitives (conversation, message, prompt-input)
+├── chat/              # Chat integration (ChatBase.tsx with useChat hook)
+├── left-panel/        # Gene search, node styling
+├── right-panel/       # Network stats, layout, legends
+├── legends/           # Always-visible NodeTypeLegend, EdgeTypeLegend
 ├── statistics/        # OpenTargets heatmaps, Leiden analysis
-├── chat/              # AI chat interface with streaming
 ├── ui/                # shadcn/ui primitives (DO NOT modify directly)
 ```
 
-**Key Knowledge Graph Components:**
-- `KGSigmaContainer` - Main container with graph settings, passes refs to child components
-- `KGGraphEvents` - Event handlers (click, hover, drag, search highlighting)
-- `KGGraphSettings` - Node/edge reducers for positioning, label hiding, highlighting
-- `KGColorAnalysis` - Applies color properties to nodes (Gene + KG node types)
-- `KGSizeAnalysis` - Applies size properties to nodes (Gene + KG node types)
-- `KGBorderTreatment` - Centralized border treatment (faded nodes with colored borders)
-- `LoadKnowledgeGraph` - Loads graph data from IndexedDB
+### Knowledge Graph (KG) Components
+- **KGSigmaContainer** - Main container, passes refs (`clickedNodesRef`, `highlightedNodesRef`) to children
+- **KGGraphSettings** - Node/edge reducers (positioning, label hiding, highlighting)
+- **KGColorAnalysis** / **KGSizeAnalysis** - Apply properties, update `activePropertyNodeTypes` array
+- **KGBorderTreatment** - Centralized border management (faded nodes with colored borders)
 
-### Error Handling & User Feedback
-Use `sonner` toast notifications (NOT console.log for user-facing errors):
+### Error Handling
+Use `sonner` toasts for user-facing errors (NOT `console.log`):
 ```tsx
 import { toast } from 'sonner';
-toast.error('Error message', { description: 'Details...' });
+toast.error('Error message', { description: 'Details', cancel: { label: 'Close', onClick() {} } });
 toast.promise(asyncFn(), { loading: 'Processing...', success: 'Done!', error: 'Failed' });
 ```
 
-### Dynamic Imports
-Sigma.js requires client-side only:
-```tsx
-const SigmaContainer = dynamic(() => import('@/components/graph').then(m => m.SigmaContainer), {
-  ssr: false,
-  loading: () => <Spinner />
-});
-```
-
-### Use lucide-react Icons
-Don't use svg for icons instead use lucide-icons.
+### Icons
+**ALWAYS** use lucide-react, never raw SVG:
 ```tsx
 import { IconName } from 'lucide-react';
-<IconName className="size-5 text-gray-600" />
+<IconName className="size-5" />
 ```
 
-## Critical Developer Workflows
+## Critical Rules
 
-### Development Setup
+### Graph Mutations
+**NEVER** mutate graph directly. Use `graph.updateNode()`, `graph.updateEdge()`, `graph.updateEachNodeAttributes()`.
+
+### Sigma.js Context
+`useSigma()` hook ONLY works inside `<SigmaContainer>`. Outside, use `useKGStore(state => state.sigmaInstance)`.
+
+### Refs & Re-renders
+Refs don't trigger React re-renders. After updating `clickedNodesRef.current`, call `sigma.refresh()` to re-run reducers.
+
+### Border Treatment (Knowledge Graph)
+- Uses `activePropertyNodeTypes: string[]` to track node types with active properties
+- Array contains node types that have color OR size properties applied
+- Visual: Active nodes = `type: 'circle'`, Inactive = `type: 'border', color: FADED_NODE_COLOR`
+
+### Label Hiding (Knowledge Graph)
+Labels hide for non-active node types UNLESS:
+1. Hovered (`node === hoveredNode`)
+2. Clicked (`clickedNodesRef.current.has(node)`)
+3. Searched (`highlightedNodesRef.current.has(node)`)
+
+## Development Workflow
+
+### Setup
 ```bash
 pnpm install
-pnpm dev  # Runs on localhost:3000
+pnpm dev  # localhost:3000
 ```
-**Required**: Create `.env.local` with backend URLs (see `.env.example`)
+Create `.env.local` with backend URLs (see `.env.example`).
 
-### Code Quality (Biome - NOT ESLint)
+### Code Quality
 ```bash
-pnpm check         # Auto-fix lint + format issues (--unsafe)
+pnpm check         # Auto-fix with Biome (--unsafe flag)
 pnpm lint          # Lint only
 pnpm format        # Format only
-pnpm check:report  # Summary report without changes
+pnpm check:report  # Summary without changes
 ```
-**Pre-commit**: Husky runs `biome check` via lint-staged on `*.{js,ts,tsx,json}`
+Pre-commit: Husky runs `biome check` on `*.{js,ts,tsx,json}`.
 
-### Build & Deploy
+### Build
 ```bash
-pnpm build  # Static export to .next/, generates sitemap + pagefind search index
+pnpm build  # Static export + sitemap + pagefind search index
 ```
-**Note**: Builds with Nextra for docs (`/docs/**`) and static network app
+Nextra docs in `/docs/**`, static network app.
 
-## Key Technical Constraints
+## Critical Constraints
 
-### Critical Dependency Versions
+### Dependency Locks
 ```json
-"@radix-ui/react-scroll-area": "1.2.0"  // DO NOT UPGRADE - breaks left sidebar scroll
+"@radix-ui/react-scroll-area": "1.2.0"  // DO NOT UPGRADE (breaks left sidebar scroll)
 ```
-**Hours wasted**: 3 (per README)
-
-### Next.js Configuration
-- Static export mode (`output: "export"`)
-- Images unoptimized (no Image Optimization API)
-- Nextra integration for docs with `contentDirBasePath: "/docs"`
-- Turbopack enabled for faster dev
-
-### Graph Performance
-- Large graphs (>500 nodes) show warning dialog before render
-- Force layout uses D3-force library (note: `forceWorker` in store is a misnomer, no Web Workers used)
-- Network statistics computed on-demand, not real-time
-
-## File Naming & Structure
-- Route groups: `app/(navbar)/(sidebar)/` for shared layouts
-- Component exports: Use barrel exports (`index.ts`) in `components/*/`
-- Interface types: Centralized in `lib/interface/` with category subfolders
-
-## Documentation Site (Nextra)
-Content in `content/` with `_meta.ts` files for nav structure. Uses MDX with custom components from `mdx-components.tsx`. Theme config in `theme.config.tsx`.
 
 ## Common Pitfalls
-1. **Don't mutate graph directly** - Use `graph.updateNode()`, `graph.updateEdge()` methods
-2. **Check IndexedDB availability** - Wrap in try/catch, show user-friendly error
-3. **GraphConfig in localStorage** - Always validate existence before parsing JSON
-4. **Component biome-ignore comments** - Next.js metadata exports trigger false positives
-5. **Video files** - Not in git, download from Google Drive for production
-6. **Backend service confusion** - Leiden is on main backend (GET), GSEA is on Python backend (POST)
-7. **useSigma() context** - Only inside `SigmaContainer`, otherwise will throw error, if needed outside use `useKGStore(state => state.sigmaInstance)`. Before using useSigma() hook, ensure that the component is wrapped within the SigmaContainer component.
-8. **Refs don't trigger re-renders** - When passing refs between components (e.g., `clickedNodesRef`, `highlightedNodesRef`), changes to `ref.current` won't trigger React re-renders. Must call `sigma.refresh()` to force Sigma to re-run node/edge reducers.
-9. **Border treatment architecture** - Uses dual Set tracking (`activePropertyNodeTypes.color` + `activePropertyNodeTypes.size`) to preserve effects when switching between color/size tabs. Never use single string tracking.
-10. **Label hiding with properties** - When properties are applied, labels hide for non-active node types UNLESS node is hovered, clicked, or searched. Always check all three conditions.
+1. **IndexedDB checks** - Wrap in try/catch, show user-friendly error
+2. **localStorage.graphConfig** - Validate existence before `JSON.parse()`
+3. **biome-ignore comments** - Next.js metadata exports trigger false positives
+4. **Video files** - Not in git, download from [Google Drive](https://drive.google.com/drive/folders/1LvPTY8Z559shYoWTaSOHFuWOFKGG8QHv) for production
+5. **Backend confusion** - Leiden = main backend (GET), GSEA = Python backend (POST)
+6. **NodeReducer performance** - Runs for EVERY node on EVERY refresh, keep logic fast
 
 ## Testing & Debugging
-**No test suite currently** - project does not use automated tests. Debug network issues:
-1. Check browser console for GraphQL errors
-2. Verify backend URLs in Network tab
-3. Inspect IndexedDB in Application tab
-4. Check `localStorage.graphConfig` format
-
-## Version Management & Releases
-Version tracking follows semantic versioning in `content/CHANGELOG.mdx`:
-- Changelog format: First `## v{major}.{minor}.{patch}` heading defines current version
-- `getLatestVersionFromChangelog()` in `lib/getChangelogVersion.ts` parses version from changelog
-- `package.json` version must match changelog for releases
-- **Breaking changes** are documented explicitly (e.g., "BREAKING CHANGES: Now, tbep-backend@1.3.0 is needed")
-
-Release types documented in changelog:
-- `[FEATURE]` - New functionality
-- `[IMPROVEMENT]` - Performance/UX enhancements
-- `[BUG]` - Bug fixes
-- `[RELEASE]` - Official releases (e.g., Zenodo DOI)
+**No test suite** - Debug via:
+1. Browser console (GraphQL errors)
+2. Network tab (backend URLs)
+3. Application tab (IndexedDB, localStorage)
 
 ## AI Chat Integration
-Streaming chat in `components/chat/ChatBase.tsx` using Vercel AI SDK's `useChat` hook. Backend must support streaming format. Track user sessions with `langfuse-tracking.ts` (localStorage-based user IDs).
+- **Current**: Streaming chat (`components/chat/ChatBase.tsx`) with Vercel AI SDK's `useChat` hook
+- **Models**: Switchable between GPT-4o and Llama 3.1 (`LLM_MODELS` in `lib/data`)
+- **Tracking**: Langfuse integration (`langfuse-tracking.ts`) with localStorage-based user IDs
+- **Limitation**: Chat does NOT have graph context (noted in disclaimer)
 
----
+### Future Agentic Features (Roadmap)
+Planning integration of:
+- **MCP Servers** - Multi-step reasoning with contextual understanding
+- **Graph-Aware Agents** - Natural language queries ("show all genes connected to breast cancer")
+- **Web Search** - Tavily API for latest research citations
+- **Command Palette** - Cmd+K style interface for task automation
+- **Dynamic Graph Updates** - Real-time modifications based on agent outputs
+
+For implementation, maximize Vercel AI SDK and `ai-elements` UI library patterns.
 
 ## Advanced Knowledge Graph Patterns
 
-### Border Treatment System
-**Purpose**: Visual distinction between nodes with/without active properties (color or size analysis).
+### Algorithm Results & Visualization
 
-**Architecture**:
+**Path Finding & DWPC**:
+- Use `graphology-simple-path`'s `allSimplePaths()` for path finding (NOT custom BFS)
+- Always sort paths by length: `results.sort((a, b) => a.length - b.length)`
+- Set `zIndex: 100` on highlighted nodes/edges for visibility in dense graphs
+- Reset `zIndex: undefined` when clearing highlights
+- Store original node sizes to prevent accumulation: `originalNodeSizes.get(node)`
+
+**Focused View Pattern**:
 ```tsx
-// Store tracks properties independently
-activePropertyNodeTypes: {
-  color: Set<string>,  // e.g., Set(["Gene"])
-  size: Set<string>    // e.g., Set(["Disease"])
-}
-
-// Combined check in components
-const allActive = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-const shouldHaveBorder = allActive.size > 0 && !allActive.has(nodeType);
-```
-
-**Key Files**:
-- `lib/graph/knowledge-graph-renderer.ts` - `applySmartBorderTreatment()` function
-- `components/knowledge-graph/KGBorderTreatment.tsx` - Centralized border management
-- `KGColorAnalysis` - Updates `activePropertyNodeTypes.color` Set
-- `KGSizeAnalysis` - Updates `activePropertyNodeTypes.size` Set
-
-**Visual Effect**:
-- Active property nodes: Normal rendering (type: 'circle', full color)
-- Inactive nodes: Border treatment (type: 'border', color: FADED_NODE_COLOR, borderColor: original color)
-
-**Critical Rules**:
-1. NEVER clear border treatment when switching tabs (color ↔ size)
-2. Only clear when BOTH color AND size Sets are empty
-3. Always update Sets, never call `applyInactiveNodeBorderTreatment` directly
-4. Border treatment applies after property updates via `KGBorderTreatment` useEffect
-
-### Label Hiding System
-**Purpose**: Reduce visual clutter when properties are applied, only show labels for relevant nodes.
-
-**Logic Flow**:
-```tsx
-// In KGGraphSettings nodeReducer
-const isHoveredOrClicked = node === hoveredNode || clickedNodesRef?.current.has(node);
-const isSearched = highlightedNodesRef?.current.has(node);
-const allActive = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-
-// Hide label if property active AND node type not active AND not interacted with
-if (allActive.size > 0 && !isHoveredOrClicked && !isSearched) {
-  if (!allActive.has(nodeType)) {
-    data.label = '';
-  }
-}
-
-// Force labels for interacted nodes
-if ((isHoveredOrClicked || isSearched) && allActive.size > 0) {
-  data.label = originalLabel;
-  data.forceLabel = true;
+// Hide all nodes/edges, then show only results
+if (focusedView) {
+  graph.updateEachNodeAttributes((_node, attr) => {
+    attr.hidden = true;
+    return attr;
+  });
+  // Then selectively show result nodes/edges
+  resultNodes.forEach(node => {
+    if (graph.hasNode(node)) {
+      graph.setNodeAttribute(node, 'hidden', false);
+    }
+  });
 }
 ```
 
-**Three Override Conditions** (always show label):
-1. **Hovered**: `node === hoveredNode`
-2. **Clicked**: `clickedNodesRef.current.has(node)`
-3. **Searched**: `highlightedNodesRef.current.has(node)`
+**Form Validation**:
+- Disable Apply button when required fields empty
+- Use dynamic validation: `disabled={(name === 'DWPC' || name === 'Path Finding') && (!formState.source || !formState.target)}`
 
-### Ref-Based Communication Pattern
-**Problem**: Multiple components need to share state without prop drilling, but refs don't trigger re-renders.
-
-**Solution**:
+### Ref-Based Communication
 ```tsx
-// KGSigmaContainer - Create refs at top level
+// KGSigmaContainer - Create refs at top
 const clickedNodesRef = React.useRef(new Set<string>());
 const highlightedNodesRef = React.useRef(new Set<string>());
 
-// Pass to child components
+// Pass to children
 <KGGraphEvents clickedNodesRef={clickedNodesRef} highlightedNodesRef={highlightedNodesRef} />
 <KGGraphSettings clickedNodesRef={clickedNodesRef} highlightedNodesRef={highlightedNodesRef} />
 
-// In child components - After updating ref, force refresh
+// Update and force refresh
 highlightedNodesRef.current = nodeIds;
-sigma.refresh(); // CRITICAL - triggers nodeReducer re-run
+sigma.refresh(); // CRITICAL
 ```
 
-**When to use refs vs state**:
-- **Refs**: Cross-component node tracking (clicked, searched nodes) where exact render timing isn't critical
-- **State**: UI state that needs immediate visual updates (hover state, dialogs)
-- **Store**: Global application state (properties, settings, data)
+**When to use**:
+- **Refs**: Cross-component tracking (clicked/searched nodes)
+- **State**: Immediate UI updates (hover, dialogs)
+- **Store**: Global app state (properties, settings)
 
-### Node Property Application Pattern
-**For Color Properties**:
+### Property Application
 ```tsx
-// Clear property
+// Add nodeType to active properties
 useKGStore.setState(state => ({
-  activePropertyNodeTypes: {
-    ...state.activePropertyNodeTypes,
-    color: new Set(),
-  },
+  activePropertyNodeTypes: state.activePropertyNodeTypes.includes('Gene')
+    ? state.activePropertyNodeTypes
+    : [...state.activePropertyNodeTypes, 'Gene'],
 }));
 
-// Set property for specific nodeType
+// Remove nodeType from active properties
 useKGStore.setState(state => ({
-  activePropertyNodeTypes: {
-    ...state.activePropertyNodeTypes,
-    color: new Set(['Gene']),
-  },
+  activePropertyNodeTypes: state.activePropertyNodeTypes.filter(t => t !== 'Gene'),
 }));
 ```
 
-**For Size Properties**: Same pattern but use `size` key instead of `color`.
-
-**Property Detection Logic**:
+### Event Restoration
+When dismissing clicked nodes, restore correct visual state:
 ```tsx
-// Detect which nodeType a property belongs to
-const propertyNodeType = Object.keys(nodePropertyData).find(
-  nodeId => nodePropertyData[nodeId]?.[selectedProperty] !== undefined,
-);
-const detectedNodeType = propertyNodeType 
-  ? graph.getNodeAttribute(propertyNodeType, 'nodeType') 
-  : DEFAULT_NODE_TYPE;
+const allActive = new Set(activePropertyNodeTypes);
+const shouldHaveBorder = allActive.size > 0 && !allActive.has(nodeType);
+
+if (shouldHaveBorder) {
+  attr.type = 'border';
+  attr.color = FADED_NODE_COLOR;
+  attr.borderColor = typeColorMap.get(nodeType) || attr.borderColor;
+} else {
+  attr.type = 'circle';
+}
 ```
 
-### Graph Event Restoration Pattern
-**Problem**: When dismissing clicked nodes or edges, must restore correct visual state (border treatment if property active).
+### Performance Tips
+- Batch ref updates, then single `sigma.refresh()`
+- Cache computed values outside reducers (e.g., `allActiveNodeTypes`)
+- Avoid creating objects/arrays inside node reducers
+- Use `graph.updateEachNodeAttributes()` for bulk updates
 
-**Helper Function**:
+## Quick Reference
+
+### File Structure
+- Routes: `app/(navbar)/(sidebar)/` for shared layouts
+- Exports: Barrel exports (`index.ts`) in `components/*/`
+- Types: `lib/interface/` with category subfolders
+- Docs: `content/` with `_meta.ts` for nav (Nextra + MDX)
+
+### Key Files
+- GraphQL queries: `lib/gql.ts`
+- Utilities: `lib/utils.ts` (`envURL`, `openDB`, event emitter)
+- Graph helpers: `lib/graph/` (renderers, canvas utilities)
+- Data constants: `lib/data/` (property mappings, color scales)
+
+### Event System
+Custom event emitter in `lib/utils.ts`:
 ```tsx
-const restoreNodeType = (
-  graph, node, highlightedNodes, clickedNodes, activePropertyNodeTypes
-) => {
-  if (highlightedNodes.has(node) || clickedNodes.has(node)) {
-    attr.type = 'border';
-    attr.highlighted = true;
-  } else {
-    const allActive = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-    const shouldHaveBorder = allActive.size > 0 && !allActive.has(nodeType);
-    
-    if (shouldHaveBorder) {
-      attr.type = 'border';
-      attr.color = FADED_NODE_COLOR;
-      attr.borderColor = typeColorMap.get(nodeType) || attr.borderColor;
-    } else {
-      attr.type = 'circle';
-    }
-  }
-};
+import { Events, eventEmitter } from '@/lib/utils';
+eventEmitter.emit(Events.EXPORT, { format: 'png' });
+eventEmitter.on(Events.ALGORITHM_RESULTS, (data) => { /* ... */ });
 ```
-
-**Usage**: Call after removing node from clicked/searched sets to restore proper appearance.
-
-### Performance Considerations
-
-**Ref Updates with Refresh**:
-- Updating refs is cheap (no React reconciliation)
-- `sigma.refresh()` is moderately expensive (re-runs all reducers)
-- Only call `sigma.refresh()` when ref changes affect visual state
-- Batch updates when possible (update multiple refs, then single refresh)
-
-**NodeReducer Optimization**:
-- Runs for EVERY node on EVERY render/refresh
-- Keep logic fast and simple
-- Cache computed values outside reducer when possible (e.g., `allActiveNodeTypes`)
-- Avoid creating new objects/arrays inside reducer
-
-**Border Treatment Updates**:
-- Uses `graph.updateEachNodeAttributes()` for bulk updates
-- Triggered by `activePropertyNodeTypes` changes via useEffect in `KGGraphSettings`.
-
-### Debugging Tips
-
-**Border treatment not applying**:
-1. Check `useKGStore.getState().activePropertyNodeTypes` - are Sets populated?
-2. Verify `KGBorderTreatment` is rendered in component tree
-3. Check console for errors in `applySmartBorderTreatment`
-4. Verify `typeColorMap` has entries for all node types
-
-**Labels not hiding/showing**:
-1. Check `allActiveNodeTypes.size > 0` - is a property active?
-2. Verify node is not in `clickedNodesRef.current` or `highlightedNodesRef.current`
-3. Check if `forceLabel` is being set incorrectly
-4. Ensure `sigma.refresh()` called after ref updates
-
-**Searched nodes not highlighting instantly**:
-1. Verify `sigma.refresh()` called after `highlightedNodesRef.current = nodeIds`
-2. Check `highlightedNodesRef` passed correctly to both Events and Settings
-3. Ensure `isSearched` check uses `?.current.has()` with optional chaining
-
-**Property effects disappearing on tab switch**:
-1. Check if old `applyInactiveNodeBorderTreatment` calls remain (should be removed)
-2. Verify `activePropertyNodeTypes` uses Set structure, not single string
-3. Confirm `KGBorderTreatment` monitors both `color` and `size` Sets
-4. Check that Sets are updated, not replaced entirely (use spread `...state.activePropertyNodeTypes`)

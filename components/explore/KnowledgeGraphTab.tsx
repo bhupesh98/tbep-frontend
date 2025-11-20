@@ -349,10 +349,10 @@ export function KnowledgeGraphTab() {
       <div className='rounded-lg border border-teal-100 bg-white p-6 shadow-md'>
         <h3 className='mb-4 font-semibold text-lg text-teal-900'>File Format Guide</h3>
 
-        <Tabs defaultValue='json' className='w-full'>
+        <Tabs defaultValue='csv' className='w-full'>
           <TabsList className='grid w-full grid-cols-4'>
-            <TabsTrigger value='json'>JSON</TabsTrigger>
             <TabsTrigger value='csv'>CSV</TabsTrigger>
+            <TabsTrigger value='json'>JSON</TabsTrigger>
             <TabsTrigger value='graphml'>GraphML</TabsTrigger>
             <TabsTrigger value='gexf'>GEXF</TabsTrigger>
           </TabsList>

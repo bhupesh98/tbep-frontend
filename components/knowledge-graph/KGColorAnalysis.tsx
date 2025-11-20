@@ -49,33 +49,23 @@ export function KGColorAnalysis() {
   useEffect(() => {
     if (!selectedRadioNodeColor && graph) {
       useStore.setState({ selectedNodeColorProperty: '' });
-      graph.updateEachNodeAttributes((_node, attr) => {
-        // Restore original color based on node type
-        const nodeType = attr.nodeType || 'Unknown';
-        const typeColors: Record<string, string> = {
-          Gene: '#3b82f6',
-          Drug: 'lightgreen',
-          Disease: 'lightcoral',
-          Pathway: 'lightyellow',
-          Unknown: 'lightgray',
-        };
-        attr.color = typeColors[nodeType] || 'lightgray';
-        return attr;
-      });
     }
   }, [selectedRadioNodeColor, graph]);
 
   // Apply color based on property
   useEffect(() => {
     if (!selectedNodeColorProperty || !graph || !selectedRadioNodeColor) {
-      // No property selected - clear color property from store
+      // No color property - check if size property exists to keep 'Gene' active
+      const selectedNodeSizeProperty = useStore.getState().selectedNodeSizeProperty;
+      const hasSizeProperty = typeof selectedNodeSizeProperty === 'string' && selectedNodeSizeProperty !== '';
+
       useKGStore.setState(state => ({
-        activePropertyNodeTypes: {
-          ...state.activePropertyNodeTypes,
-          color: new Set(),
-        },
+        activePropertyNodeTypes: hasSizeProperty
+          ? state.activePropertyNodeTypes.includes('Gene')
+            ? state.activePropertyNodeTypes
+            : [...state.activePropertyNodeTypes, 'Gene']
+          : state.activePropertyNodeTypes.filter(t => t !== 'Gene'),
       }));
-      // Don't clear border treatment here - let it be managed by combined effect
       return;
     }
 
@@ -105,12 +95,11 @@ export function KGColorAnalysis() {
         ? (graph.getNodeAttribute(propertyNodeType, 'nodeType') as string)
         : DEFAULT_NODE_TYPE;
 
-      // Update active color property nodeTypes
+      // Update active property nodeTypes - add if not present, preserve existing
       useKGStore.setState(state => ({
-        activePropertyNodeTypes: {
-          ...state.activePropertyNodeTypes,
-          color: new Set([detectedNodeType]),
-        },
+        activePropertyNodeTypes: state.activePropertyNodeTypes.includes(detectedNodeType)
+          ? state.activePropertyNodeTypes
+          : [...state.activePropertyNodeTypes.filter(t => t !== 'Gene'), detectedNodeType],
       }));
       const values = Object.entries(nodePropertyData)
         .map(([, props]) => props[selectedNodeColorProperty])
@@ -148,12 +137,11 @@ export function KGColorAnalysis() {
     const userOrDiseaseIdentifier = isUserProperty ? 'user' : diseaseName;
     const userOrCommonIdentifier = isUserProperty ? 'user' : 'common';
 
-    // Gene property - update active color property nodeTypes
+    // Gene property - add 'Gene' to active property tracking
     useKGStore.setState(state => ({
-      activePropertyNodeTypes: {
-        ...state.activePropertyNodeTypes,
-        color: new Set(['Gene']),
-      },
+      activePropertyNodeTypes: state.activePropertyNodeTypes.includes('Gene')
+        ? state.activePropertyNodeTypes
+        : [...state.activePropertyNodeTypes, 'Gene'],
     }));
 
     if (selectedRadioNodeColor === 'OpenTargets' && typeof selectedNodeColorProperty === 'string') {

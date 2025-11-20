@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
+      "DOM",
+      "DOM.Iterable",
+      "ESNext",
+      "WebWorker"
     ],
     "target": "ES2015",
     "allowJs": true,

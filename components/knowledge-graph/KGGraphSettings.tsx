@@ -40,8 +40,8 @@ export function KGGraphSettings({
     // Generate type color map for consistent colors
     const typeColorMap = generateTypeColorMap(graph);
 
-    // Apply smart border treatment based on both color and size properties
-    applySmartBorderTreatment(graph, activePropertyNodeTypes.color, activePropertyNodeTypes.size, typeColorMap);
+    // Apply smart border treatment based on active properties
+    applySmartBorderTreatment(graph, activePropertyNodeTypes, typeColorMap);
   }, [graph, activePropertyNodeTypes]);
 
   // Node and edge reducers for positioning and highlighting
@@ -70,14 +70,11 @@ export function KGGraphSettings({
           return label.length > maxLabelLength ? `${label.substring(0, maxLabelLength)}...` : label;
         };
 
-        // Combine color and size Sets to get all active node types
-        const allActiveNodeTypes = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-
         // Hide labels for non-active node types when a property is applied (unless hovered/clicked/searched)
         // Note: Selection plugin handles its own visual updates via graph.updateNodeAttributes
-        if (allActiveNodeTypes.size > 0 && !isHoveredOrClicked && !isSearched && !data.selectedByPlugin) {
+        if (activePropertyNodeTypes.length > 0 && !isHoveredOrClicked && !isSearched && !data.selectedByPlugin) {
           // If this nodeType doesn't have any active property, hide its label
-          if (!allActiveNodeTypes.has(nodeType)) {
+          if (!activePropertyNodeTypes.includes(nodeType)) {
             data.label = '';
           }
         }
@@ -100,7 +97,7 @@ export function KGGraphSettings({
             data.color = '#E2E2E2';
             data.highlighted = false;
           }
-        } else if (isSearched && allActiveNodeTypes.size > 0) {
+        } else if (isSearched && activePropertyNodeTypes.length > 0) {
           // If node is searched but not currently hovered, restore its label (full label, no truncation)
           data.label = originalLabel;
           data.forceLabel = true;

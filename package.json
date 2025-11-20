@@ -1,6 +1,6 @@
 {
   "name": "tbep-frontend",
-  "version": "1.3.1",
+  "version": "2.0.0-dev.2",
   "license": "CC-BY-NC-4.0",
   "author": {
     "name": "Bhupesh Dewangan",
@@ -63,6 +63,7 @@
     "graphology-graphml": "^0.5.2",
     "graphology-metrics": "^2.4.0",
     "graphology-operators": "^1.6.1",
+    "graphology-simple-path": "^0.2.0",
     "graphology-types": "^0.24.8",
     "lucide-react": "^0.553.0",
     "nanoid": "^5.1.6",

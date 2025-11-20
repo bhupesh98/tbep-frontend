@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Input } from '../ui/input';
-import { Slider } from '../ui/slider';
+import { Input } from './ui/input';
+import { Slider } from './ui/slider';
 
 export default function SliderWithInput({
   min,

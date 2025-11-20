@@ -23,7 +23,7 @@ export function drawHover(
   const weight = settings.labelWeight;
   const subLabelSize = size - 2;
   const nodeName = `Name: ${data.label || ''}`;
-  const nodeId = `ID: ${data.ID ?? data.id ?? ''}`;
+  const nodeId = `ID: ${data.ID ?? ''}`;
   const description = data.description ? `Description: ${data.description}` : '';
 
   // Then we draw the label background

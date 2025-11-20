@@ -4,7 +4,7 @@ import { useSigma } from '@react-sigma/core';
 import type { Quadtree } from 'd3-quadtree';
 import type AbstractGraph from 'graphology-types';
 import type { Attributes } from 'graphology-types';
-import { useImperativeHandle, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createBoxSelectionHandlers } from '../createBoxSelectionHandlers';
 import { createLassoSelectionHandlers } from '../createLassoSelectionHandlers';
 import { buildSpatialIndex } from '../spatial-index';
@@ -30,7 +30,6 @@ export function SelectionPlugin(props: SelectionPluginConfig & { ref?: React.Ref
 
   // Shared spatial index for both selection modes
   const spatialIndexRef = useRef<Quadtree<QuadtreeNodeData> | null>(null);
-  const spatialIndexInitializedRef = useRef(false);
 
   // State refs for box selection
   const boxStateRef = useRef<BoxSelectionState>({
@@ -56,17 +55,19 @@ export function SelectionPlugin(props: SelectionPluginConfig & { ref?: React.Ref
     autoRegisterEvents,
   };
 
-  // Initialize shared spatial index once
-  if (!spatialIndexInitializedRef.current) {
-    const graph = sigma.getGraph();
-    spatialIndexRef.current = buildSpatialIndex(graph);
-    spatialIndexInitializedRef.current = true;
-
-    // Listen for afterRender to rebuild spatial index when graph changes
-    sigma.on('afterRender', () => {
+  // Initialize shared spatial index on each render
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only once
+  useEffect(() => {
+    const listener = () => {
+      const graph = sigma.getGraph();
       spatialIndexRef.current = buildSpatialIndex(graph);
-    });
-  }
+    };
+    sigma.on('afterRender', listener);
+
+    return () => {
+      sigma.off('afterRender', listener);
+    };
+  }, []);
 
   // Apply visual updates to selected nodes
   const applySelectionVisuals = (nodeIds: string[]) => {

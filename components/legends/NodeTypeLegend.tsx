@@ -111,10 +111,6 @@ export function NodeTypeLegend() {
   };
 
   // Determine if this type should show border + fade effect
-  const shouldShowBorderEffect = (nodeType: string) => {
-    const allActiveNodeTypes = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-    return allActiveNodeTypes.size > 0 && !allActiveNodeTypes.has(nodeType);
-  };
 
   if (nodeTypes.length === 0) {
     return (
@@ -129,7 +125,7 @@ export function NodeTypeLegend() {
       <p className='font-semibold text-[10px] text-gray-600 uppercase'>Node Types</p>
       <div className='space-y-0.5'>
         {nodeTypes.map(({ type, color, total, hidden }) => {
-          const hasBorderEffect = shouldShowBorderEffect(type);
+          const hasBorderEffect = activePropertyNodeTypes.length !== 0 && !activePropertyNodeTypes.includes(type);
 
           return (
             <div

@@ -32,6 +32,89 @@ export const algorithms = [
       },
     ],
   },
-];
+  {
+    name: 'DWPC',
+    parameters: [
+      {
+        type: 'select',
+        displayName: 'Source Node',
+        name: 'source',
+        defaultValue: '',
+        placeholder: 'Select source node',
+      },
+      {
+        type: 'select',
+        displayName: 'Target Node',
+        name: 'target',
+        defaultValue: '',
+        placeholder: 'Select target node',
+      },
+      {
+        type: 'slider',
+        displayName: 'Maximum Hops',
+        name: 'maxHops',
+        defaultValue: 3,
+        min: 2,
+        max: 5,
+        step: 1,
+      },
+      {
+        type: 'slider',
+        displayName: 'Damping Factor',
+        name: 'damping',
+        defaultValue: 0.4,
+        min: 0.1,
+        max: 1.0,
+        step: 0.1,
+      },
+      {
+        type: 'slider',
+        displayName: 'Max Paths',
+        name: 'maxPaths',
+        defaultValue: 1000,
+        min: 100,
+        max: 10000,
+        step: 100,
+      },
+    ],
+  },
+  {
+    name: 'Path Finding',
+    parameters: [
+      {
+        type: 'select',
+        displayName: 'Source Node',
+        name: 'source',
+        defaultValue: '',
+        placeholder: 'Select source node',
+      },
+      {
+        type: 'select',
+        displayName: 'Target Node',
+        name: 'target',
+        defaultValue: '',
+        placeholder: 'Select target node',
+      },
+      {
+        type: 'slider',
+        displayName: 'Maximum Depth (Hops)',
+        name: 'maxDepth',
+        defaultValue: 3,
+        min: 2,
+        max: 5,
+        step: 1,
+      },
+      {
+        type: 'slider',
+        displayName: 'Max Paths',
+        name: 'maxPaths',
+        defaultValue: 1000,
+        min: 100,
+        max: 5000,
+        step: 100,
+      },
+    ],
+  },
+] as const;
 
 export type AlgorithmType = (typeof algorithms)[number]['name'];

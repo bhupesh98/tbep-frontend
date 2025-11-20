@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/colla
  */
 export function KGLegend() {
   const selectedRadioNodeColor = useStore(state => state.selectedRadioNodeColor);
-  const selectedNodeColorProperty = useStore(state => state.selectedNodeColorProperty);
+  const selectedNodeColorProperty = useKGStore(state => state.selectedNodeColorProperty);
   const showEdgeColor = useKGStore(state => state.showEdgeColor);
 
   return (
@@ -40,7 +40,7 @@ export function KGLegend() {
               selectedRadioNodeColor === 'Pathway' ? (
                 <BinaryLegend />
               ) : selectedRadioNodeColor === 'DEG' ? (
-                typeof selectedNodeColorProperty === 'string' && P_VALUE_REGEX.test(selectedNodeColorProperty) ? (
+                P_VALUE_REGEX.test(selectedNodeColorProperty) ? (
                   <HeatmapLegend
                     title='P-Value'
                     range={['green', 'red']}

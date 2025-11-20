@@ -145,7 +145,6 @@ export function KGFileSheet() {
     }
 
     const graph = sigmaInstance.getGraph();
-    const _nodePropertyData = useKGStore.getState().nodePropertyData;
     const radioOptions = useStore.getState().radioOptions;
     let updatedProperties = 0;
 

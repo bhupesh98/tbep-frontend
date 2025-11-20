@@ -6,6 +6,7 @@ import Papa from 'papaparse';
 import { useEffect, useState } from 'react';
 import { algorithms, columnLeidenResults } from '@/lib/data';
 import { downloadFile, type EventMessage, Events, eventEmitter } from '@/lib/utils';
+import SliderWithInput from '../SliderWithInput';
 import { LeidenPieChart } from '../statistics';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
@@ -15,7 +16,6 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import SliderWithInput from './SliderWithInput';
 
 export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
   const handleAlgoQuery = (name: string, formData?: FormData) => {
@@ -40,6 +40,7 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
   const [showTable, setShowTable] = useState(false);
 
   const handleExport = (communities: EventMessage[Events.ALGORITHM_RESULTS]['communities']) => {
+    if (!communities) return;
     const csv = Papa.unparse(
       communities.map(c => ({
         ...c,
@@ -75,33 +76,33 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
               {parameters.length > 0 && (
                 <PopoverContent className='w-52'>
                   <form key={name} className='flex flex-col space-y-2' action={f => handleAlgoQuery(name, f)}>
-                    {parameters.map(({ name, displayName, type, defaultValue, min, max, step }) => {
-                      if (type === 'slider') {
+                    {parameters.map(param => {
+                      if (param.type === 'slider') {
                         return (
-                          <div key={name}>
-                            <Label key={name} htmlFor={name} className='font-semibold text-xs'>
-                              {displayName}
+                          <div key={param.name}>
+                            <Label key={param.name} htmlFor={param.name} className='font-semibold text-xs'>
+                              {param.displayName}
                             </Label>
                             <SliderWithInput
-                              min={min}
-                              max={max}
-                              step={step}
-                              id={name}
-                              defaultValue={defaultValue as number}
+                              min={param.min}
+                              max={param.max}
+                              step={param.step}
+                              id={param.name}
+                              defaultValue={param.defaultValue as number}
                             />
                           </div>
                         );
                       }
                       return (
                         <div
-                          key={name}
+                          key={param.name}
                           style={{ gridTemplateColumns: '1fr 2fr' }}
                           className='grid w-full grid-cols-2 items-center gap-2'
                         >
-                          <Label key={name} htmlFor={name} className='font-semibold text-xs'>
-                            {displayName}
+                          <Label key={param.name} htmlFor={param.name} className='font-semibold text-xs'>
+                            {param.displayName}
                           </Label>
-                          <Checkbox name={name} id={name} defaultChecked={defaultValue as boolean} />
+                          <Checkbox name={param.name} id={param.name} defaultChecked={param.defaultValue as boolean} />
                         </div>
                       );
                     })}
@@ -114,7 +115,7 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
             </Popover>
           ))}
         </RadioGroup>
-        {algorithmResults && (
+        {algorithmResults?.communities && (
           <>
             <hr className='mb-1' />
             <p className='font-semibold text-sm underline'>Results:</p>
@@ -126,7 +127,7 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
             </p>
             <div className='my-1 flex justify-center'>
               <Button size='sm' variant='outline' onClick={() => setShowTable(true)}>
-                Show Details ({algorithmResults.communities.length})
+                Show Details ({algorithmResults.communities?.length})
               </Button>
               <Dialog open={showTable}>
                 <DialogContent className='flex max-h-[92vh] min-h-[60vh] max-w-7xl flex-col gap-2'>

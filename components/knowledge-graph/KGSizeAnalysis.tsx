@@ -31,24 +31,21 @@ export function KGSizeAnalysis() {
         attr.size = defaultNodeSize;
         return attr;
       });
-      // Clear size property from active tracking
-      useKGStore.setState(state => ({
-        activePropertyNodeTypes: {
-          ...state.activePropertyNodeTypes,
-          size: new Set(),
-        },
-      }));
     }
   }, [selectedRadioNodeSize, graph]);
 
   useEffect(() => {
     if (!selectedNodeSizeProperty || !graph || !selectedRadioNodeSize) {
-      // No property selected - clear size from active tracking
+      // No size property - check if color property exists to keep 'Gene' active
+      const selectedNodeColorProperty = useStore.getState().selectedNodeColorProperty;
+      const hasColorProperty = typeof selectedNodeColorProperty === 'string' && selectedNodeColorProperty !== '';
+
       useKGStore.setState(state => ({
-        activePropertyNodeTypes: {
-          ...state.activePropertyNodeTypes,
-          size: new Set(),
-        },
+        activePropertyNodeTypes: hasColorProperty
+          ? state.activePropertyNodeTypes.includes('Gene')
+            ? state.activePropertyNodeTypes
+            : [...state.activePropertyNodeTypes, 'Gene']
+          : state.activePropertyNodeTypes.filter(t => t !== 'Gene'),
       }));
       return;
     }
@@ -78,10 +75,9 @@ export function KGSizeAnalysis() {
 
       // Track size property for this nodeType
       useKGStore.setState(state => ({
-        activePropertyNodeTypes: {
-          ...state.activePropertyNodeTypes,
-          size: new Set([detectedNodeType]),
-        },
+        activePropertyNodeTypes: state.activePropertyNodeTypes.includes(detectedNodeType)
+          ? state.activePropertyNodeTypes
+          : [...state.activePropertyNodeTypes.filter(t => t !== 'Gene'), detectedNodeType],
       }));
       const values = Object.entries(nodePropertyData)
         .map(([, props]) => props[selectedNodeSizeProperty])
@@ -109,12 +105,11 @@ export function KGSizeAnalysis() {
     const userOrDiseaseIdentifier = isUserProperty ? 'user' : diseaseName;
     const userOrCommonIdentifier = isUserProperty ? 'user' : 'common';
 
-    // Gene property - track size property for Gene
+    // Gene property - add 'Gene' to active property tracking
     useKGStore.setState(state => ({
-      activePropertyNodeTypes: {
-        ...state.activePropertyNodeTypes,
-        size: new Set(['Gene']),
-      },
+      activePropertyNodeTypes: state.activePropertyNodeTypes.includes('Gene')
+        ? state.activePropertyNodeTypes
+        : [...state.activePropertyNodeTypes, 'Gene'],
     }));
 
     if (selectedRadioNodeSize === 'Druggability' && typeof selectedNodeSizeProperty === 'string') {

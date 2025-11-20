@@ -17,17 +17,17 @@ const restoreNodeType = (
   node: string,
   highlightedNodes: Set<string>,
   clickedNodes: Set<string>,
-  activePropertyNodeTypes: { color: Set<string>; size: Set<string> },
+  activePropertyNodeTypes: string[],
 ) => {
   graph.updateNodeAttributes(node, attr => {
     if (highlightedNodes.has(node) || clickedNodes.has(node)) {
       attr.type = 'border';
       attr.highlighted = true;
     } else {
-      // Check if border treatment should be applied based on combined Sets
+      // Check if border treatment should be applied based on active property node types
       const nodeType = (attr.nodeType as string) || 'Unknown';
-      const allActiveNodeTypes = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-      const shouldHaveBorderTreatment = allActiveNodeTypes.size > 0 && !allActiveNodeTypes.has(nodeType);
+      const shouldHaveBorderTreatment =
+        activePropertyNodeTypes.length > 0 && !activePropertyNodeTypes.includes(nodeType);
 
       if (shouldHaveBorderTreatment) {
         // Restore border treatment (faded with colored border)
@@ -68,7 +68,7 @@ const clearEdgeHighlight = (
   edgeId: string,
   highlightedNodes: Set<string>,
   clickedNodes: Set<string>,
-  activePropertyNodeTypes: { color: Set<string>; size: Set<string> },
+  activePropertyNodeTypes: string[],
 ) => {
   graph.updateEdgeAttributes(edgeId, attr => {
     attr.color = attr.altColor;
@@ -158,8 +158,7 @@ export function KGGraphEvents({
     for (const node of previousHighlightedNodes) {
       if (nodeIds.has(node) || !graph.hasNode(node)) continue;
       graph.removeNodeAttribute(node, 'highlighted');
-      const allActiveNodeTypes = new Set([...activePropertyNodeTypes.color, ...activePropertyNodeTypes.size]);
-      if (allActiveNodeTypes.size && !allActiveNodeTypes.has(graph.getNodeAttribute(node, 'nodeType') || 'Unknown')) {
+      if (!activePropertyNodeTypes.includes(graph.getNodeAttribute(node, 'nodeType') || 'Unknown')) {
         continue;
       }
       graph.setNodeAttribute(node, 'type', 'circle');
