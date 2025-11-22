@@ -88,7 +88,7 @@ export function kgStatisticsGenerator(
   /** Top 10 By PageRank */
   let top10ByPageRank: NonNullable<KGStore['networkStatistics']['top10ByPageRank']> = [];
   try {
-    const pagerankCentrality = pagerank(graph, { getEdgeWeight: 'score', tolerance: 1e-6, maxIterations: 100 });
+    const pagerankCentrality = pagerank(graph, { getEdgeWeight: 'score', tolerance: 1e-3, maxIterations: 100 });
     top10ByPageRank = Object.entries(pagerankCentrality)
       .map(([node, value]) => ({
         id: node,

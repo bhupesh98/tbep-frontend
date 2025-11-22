@@ -63,7 +63,7 @@ export function NetworkAnalysis({ children }: { children: React.ReactNode }) {
       </div>
       <CollapsibleContent className='mt-1'>
         <RadioGroup defaultValue='None' className='mb-2'>
-          {algorithms.map(({ name, parameters }) => (
+          {algorithms.slice(0, 2).map(({ name, parameters }) => (
             <Popover key={name}>
               <div className='flex items-center space-x-2'>
                 <PopoverTrigger asChild>

@@ -11,16 +11,25 @@ import {
 import Link from 'next/link';
 import React from 'react';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { ChatBase } from './ChatBase';
+import { KGChat } from './KGChat';
 
-export function ChatWindow() {
+/**
+ * KGChatWindow Component
+ * Knowledge Graph-specific chat window with resizable interface
+ * Same UI as ChatWindow but uses KGChat with /kg-chat endpoint
+ */
+export function KGChatWindow() {
   const [isChatOpen, setIsChatOpen] = React.useState(false);
   const [chatHeight, setChatHeight] = React.useState<number | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
   const dragStartY = React.useRef<number>(0);
   const dragStartHeight = React.useRef<number>(0);
 
-  const showAlert = typeof window !== 'undefined' ? localStorage.getItem('showAlert') !== 'false' : true;
+  // const showAlert = typeof window !== 'undefined' ? localStorage.getItem('showKGChatAlert') !== 'false' : true;
+  const [showAlert, setShowAlert] = React.useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('showKGChatAlert') !== 'false';
+  });
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
@@ -47,7 +56,7 @@ export function ChatWindow() {
   };
 
   return (
-    <ChatBase onChatOpen={setIsChatOpen}>
+    <KGChat onChatOpen={setIsChatOpen}>
       {({ messages, handleDeleteMessages, renderMessages, renderPromptInput }) => (
         <div className='relative mx-auto flex w-full flex-col items-center'>
           {isChatOpen && (
@@ -65,7 +74,7 @@ export function ChatWindow() {
               </div>
               <div className='flex shrink-0 items-center justify-between border-b bg-gray-100 p-4'>
                 <div className='flex items-center gap-4'>
-                  <h2 className='font-semibold text-lg'>Chat with TBEP Assistant</h2>
+                  <h2 className='font-semibold text-lg'>Knowledge Graph Chat</h2>
                 </div>
                 <div className='flex items-center space-x-8'>
                   <button type='button' onClick={handleDeleteMessages} className='text-gray-500 hover:text-gray-700'>
@@ -88,20 +97,21 @@ export function ChatWindow() {
                       <Alert className='w-3/4'>
                         <TriangleAlertIcon size={20} />
                         <AlertTitle className='flex w-full items-center justify-between font-bold'>
-                          Disclaimer{' '}
+                          Knowledge Graph AI Assistant{' '}
                           <XIcon
                             size={15}
                             className='m-2 rounded hover:border'
                             onClick={() => {
-                              localStorage.setItem('showAlert', 'false');
+                              localStorage.setItem('showKGChatAlert', 'false');
+                              setShowAlert(false);
                             }}
                           />
                         </AlertTitle>
                         <AlertDescription>
                           <p className='items-center text-sm'>
-                            This AI assistant may occasionally generate incorrect or misleading information. We are not
-                            responsible for any decisions made based on the generated content. By using this service,
-                            you agree to our{' '}
+                            This AI assistant can analyze and query your knowledge graph using natural language. It has
+                            access to graph structure, properties, and can perform various graph algorithms. Results may
+                            occasionally be incorrect. By using this service, you agree to our{' '}
                             <Link
                               href='/docs/terms-of-use'
                               className='font-medium underline underline-offset-4 hover:text-primary'
@@ -115,7 +125,7 @@ export function ChatWindow() {
                             >
                               Privacy Policy
                             </Link>
-                            . <b>Also, currently this graph is not connected to the AI assistant.</b>
+                            .
                           </p>
                         </AlertDescription>
                       </Alert>
@@ -140,6 +150,6 @@ export function ChatWindow() {
           </div>
         </div>
       )}
-    </ChatBase>
+    </KGChat>
   );
 }

@@ -1,11 +1,15 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from 'ai';
 import { BookmarkIcon, CheckIcon, RefreshCcwIcon } from 'lucide-react';
 import React from 'react';
 import { toast } from 'sonner';
 import { LLM_MODELS } from '@/lib/data';
+import { useStore } from '@/lib/hooks';
+import { useKGStore } from '@/lib/hooks/use-kg-store';
+import type { KGUIMessage } from '@/lib/kg-chat-types';
+import { buildNodeSearchIndex, buildPropertySearchIndex, KG_TOOLS, type ToolContext } from '@/lib/kg-tools';
 import { generateSessionId, getUserId } from '@/lib/langfuse-tracking';
 import { cn, envURL } from '@/lib/utils';
 import { Checkpoint, CheckpointIcon, CheckpointTrigger } from '../ai-elements/checkpoint';
@@ -53,6 +57,7 @@ import {
   PromptInputTools,
 } from '../ai-elements/prompt-input';
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '../ai-elements/reasoning';
+import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from '../ai-elements/tool';
 
 type CheckpointType = {
   id: string;
@@ -61,12 +66,12 @@ type CheckpointType = {
   messageCount: number;
 };
 
-export interface ChatBaseProps {
+export interface KGChatProps {
   onChatOpen?: (isOpen: boolean) => void;
-  children?: (props: ChatBaseRenderProps) => React.ReactNode;
+  children?: (props: KGChatRenderProps) => React.ReactNode;
 }
 
-export interface ChatBaseRenderProps {
+export interface KGChatRenderProps {
   // State
   model: string;
 
@@ -89,7 +94,17 @@ export interface ChatBaseRenderProps {
   renderPromptInput: () => React.ReactNode;
 }
 
-export function ChatBase({ onChatOpen, children }: ChatBaseProps) {
+/**
+ * KGChat Component
+ * Knowledge Graph-aware chat with client-side tool execution
+ *
+ * Key differences from ChatBase:
+ * - Uses /kg-chat endpoint instead of /llm
+ * - Implements onToolCall for client-side tool execution
+ * - Builds graph context and property search index on mount
+ * - Renders tool results inline with messages
+ */
+export function KGChat({ onChatOpen, children }: KGChatProps) {
   const [model, setModel] = React.useState<(typeof LLM_MODELS)[number]['id']>(LLM_MODELS[0].id);
   const [modelSelectorOpen, setModelSelectorOpen] = React.useState(false);
   const [checkpoints, setCheckpoints] = React.useState<CheckpointType[]>([]);
@@ -98,17 +113,143 @@ export function ChatBase({ onChatOpen, children }: ChatBaseProps) {
   // Generate unique IDs for Langfuse session tracking
   const sessionId = React.useMemo(() => generateSessionId(), []);
 
-  const { messages, setMessages, sendMessage, status, regenerate, stop, clearError } = useChat({
-    transport: new DefaultChatTransport({
-      api: `${envURL(process.env.NEXT_PUBLIC_LLM_BACKEND_URL)}/chat`,
-    }),
-    onError(error) {
-      toast.error('Failed to fetch response from LLM', {
-        cancel: { label: 'Close', onClick() {} },
-        description: error.message || 'LLM server is not responding. Please try again later.',
-      });
-    },
-  });
+  const { messages, setMessages, sendMessage, status, regenerate, stop, clearError, addToolOutput } =
+    useChat<KGUIMessage>({
+      transport: new DefaultChatTransport({
+        api: `${envURL(process.env.NEXT_PUBLIC_LLM_BACKEND_URL)}/kg-chat`,
+      }),
+      onError(error) {
+        toast.error('Failed to fetch response from LLM', {
+          cancel: { label: 'Close', onClick() {} },
+          description: error.message || 'LLM server is not responding. Please try again later.',
+        });
+      },
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      async onToolCall({ toolCall }) {
+        // Type narrowing: Skip dynamic tools (not supported in our registry)
+        if (toolCall.dynamic) {
+          return;
+        }
+
+        // CRITICAL: Build indexes fresh on each tool call to capture latest state
+        // This ensures we always use the most up-to-date sigmaInstance, kgPropertyOptions, and radioOptions
+        // which may have been loaded/updated after the component mounted
+        const currentSigmaInstance = useKGStore.getState().sigmaInstance;
+        const currentKgPropertyOptions = useKGStore.getState().kgPropertyOptions;
+        const currentRadioOptions = useStore.getState().radioOptions;
+
+        if (!currentSigmaInstance) {
+          throw new Error('Graph not loaded. Please upload or load a knowledge graph first.');
+        }
+
+        const graph = currentSigmaInstance.getGraph();
+
+        // Build fresh indexes with latest data
+        const graphSearchIndex = buildNodeSearchIndex(graph);
+        const propertySearchIndex = buildPropertySearchIndex(currentKgPropertyOptions || {}, currentRadioOptions);
+
+        // Build tool context with fresh indexes
+        const toolContext: ToolContext = {
+          store: useKGStore.getState(),
+          legacy_store: useStore.getState(),
+          graphSearchIndex,
+          propertySearchIndex,
+        };
+
+        try {
+          // Get tool function from registry
+          const toolFn = KG_TOOLS[toolCall.toolName as keyof typeof KG_TOOLS];
+
+          if (!toolFn) {
+            throw new Error(`Tool '${toolCall.toolName}' not found in registry`);
+          }
+
+          // Execute tool with input and context
+          // NOTE: TypeScript cannot statically verify the relationship between toolCall.toolName
+          // and the correct input type because KG_TOOLS is a heterogeneous registry (each tool
+          // has different input/output types). Runtime safety is guaranteed by:
+          // 1. AI SDK validates toolCall.input against zod schemas before this callback
+          // 2. Tool implementations validate their inputs and return typed ToolResult<T>
+          // biome-ignore lint/suspicious/noExplicitAny: TypeScript limitation with heterogeneous tool registry, runtime type safety via zod
+          const result = await toolFn(toolCall.input as any, toolContext);
+
+          // Check if tool execution was successful
+          if (!result.success) {
+            throw new Error(result.error || 'Tool execution failed');
+          }
+
+          // Add successful output to chat (only the data, not the wrapper)
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            // biome-ignore lint/suspicious/noExplicitAny: Output type matches the tool's return type, AI SDK handles downstream typing
+            output: result.data as any,
+          });
+
+          // Apply visual updates if tool returned them
+          if (result.visualUpdate) {
+            const { visualUpdate } = result;
+
+            // Highlight nodes
+            if (visualUpdate.highlightedNodes) {
+              for (const nodeId of visualUpdate.highlightedNodes) {
+                if (graph.hasNode(nodeId)) {
+                  graph.updateNodeAttributes(nodeId, attrs => {
+                    attrs.highlighted = true;
+                    attrs.zIndex = 100;
+                    return attrs;
+                  });
+                }
+              }
+            }
+
+            // Highlight edges
+            if (visualUpdate.highlightedEdges) {
+              for (const edgeId of visualUpdate.highlightedEdges) {
+                if (graph.hasEdge(edgeId)) {
+                  graph.updateEdgeAttributes(edgeId, attrs => {
+                    attrs.highlighted = true;
+                    attrs.zIndex = 100;
+                    return attrs;
+                  });
+                }
+              }
+            }
+
+            // Animate camera to target
+            if (visualUpdate.cameraTarget) {
+              const camera = currentSigmaInstance.getCamera();
+              camera.animate(
+                {
+                  x: visualUpdate.cameraTarget.x,
+                  y: visualUpdate.cameraTarget.y,
+                  ratio: visualUpdate.cameraTarget.ratio || 0.5,
+                },
+                { duration: 500 },
+              );
+            }
+
+            // Refresh sigma to apply visual changes
+            currentSigmaInstance.refresh();
+          }
+        } catch (error) {
+          // Handle errors gracefully - show error toast
+          const errorText = error instanceof Error ? error.message : String(error);
+          toast.error('Tool execution failed', {
+            description: errorText,
+            cancel: { label: 'Close', onClick() {} },
+          });
+
+          // Also add error output to chat for context
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            state: 'output-error',
+            errorText,
+          });
+        }
+      },
+    });
 
   // Checkpoint management functions
   const createCheckpoint = React.useCallback((messageIndex: number) => {
@@ -143,7 +284,16 @@ export function ChatBase({ onChatOpen, children }: ChatBaseProps) {
     }
 
     onChatOpen?.(true);
-    sendMessage({ text: message.text }, { body: { model, sessionId, userId: getUserId() } });
+    sendMessage(
+      { text: message.text, files: message.files },
+      {
+        body: {
+          model,
+          sessionId,
+          userId: getUserId(),
+        },
+      },
+    );
   };
 
   const handleDeleteMessages = () => {
@@ -151,15 +301,6 @@ export function ChatBase({ onChatOpen, children }: ChatBaseProps) {
     setCheckpoints([]);
     onChatOpen?.(false);
   };
-
-  // Auto-create checkpoint after each assistant message
-  React.useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (messages.length > 0 && lastMessage?.role === 'assistant' && status === 'submitted') {
-      // Create checkpoint after the last message
-      createCheckpoint(messages.length - 1);
-    }
-  }, [messages, status, createCheckpoint]);
 
   const handleSubmitAction = () => {
     if (status === 'submitted' || status === 'streaming') {
@@ -241,13 +382,35 @@ export function ChatBase({ onChatOpen, children }: ChatBaseProps) {
                           }
                         >
                           <ReasoningTrigger />
-                          <ReasoningContent>{part.text}</ReasoningContent>
+                          <ReasoningContent className='rounded-md border p-2 text-black'>{part.text}</ReasoningContent>
                         </Reasoning>
                       );
                     case 'file':
                       // Files are rendered separately above
                       return null;
                     default:
+                      // Tool-related parts (includes both 'dynamic-tool' and 'tool-*' types)
+                      if (
+                        (part.type === 'dynamic-tool' || part.type.startsWith('tool-')) &&
+                        'state' in part &&
+                        'input' in part
+                      ) {
+                        // biome-ignore lint/suspicious/noExplicitAny: Tool part types are complex unions from AI SDK
+                        const toolPart = part as any;
+                        const toolName =
+                          part.type === 'dynamic-tool' ? toolPart.toolName : part.type.replace('tool-', '');
+
+                        return (
+                          <Tool key={`${message.id}-${i}`} defaultOpen>
+                            {/* biome-ignore lint/suspicious/noExplicitAny: ToolUIPart type union requires type assertion for compatibility */}
+                            <ToolHeader title={toolName} type={part.type as any} state={toolPart.state} />
+                            <ToolContent>
+                              <ToolInput input={toolPart.input} />
+                              <ToolOutput output={toolPart.output} errorText={toolPart.errorText} />
+                            </ToolContent>
+                          </Tool>
+                        );
+                      }
                       return null;
                   }
                 })}

@@ -167,7 +167,7 @@ Nextra docs in `/docs/**`, static network app.
 
 ## AI Chat Integration
 - **Current**: Streaming chat (`components/chat/ChatBase.tsx`) with Vercel AI SDK's `useChat` hook
-- **Models**: Switchable between GPT-4o and Llama 3.1 (`LLM_MODELS` in `lib/data`)
+- **Models**: Switchable between various models (`LLM_MODELS` in `lib/data`)
 - **Tracking**: Langfuse integration (`langfuse-tracking.ts`) with localStorage-based user IDs
 - **Limitation**: Chat does NOT have graph context (noted in disclaimer)
 

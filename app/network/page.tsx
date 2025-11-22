@@ -19,11 +19,13 @@ const SigmaContainer = dynamic(() => import('@/components/graph').then(module =>
 
 export default function NetworkPage() {
   return (
-    <>
-      <div className='h-[87%]'>
+    <div className='flex h-full flex-col'>
+      <div className='min-h-0 flex-1'>
         <SigmaContainer />
       </div>
-      <ChatWindow />
-    </>
+      <div className='mb-2 shrink-0'>
+        <ChatWindow />
+      </div>
+    </div>
   );
 }

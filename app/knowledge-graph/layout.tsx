@@ -11,7 +11,6 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useKGStore } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 // Lazy-load statistics component only when needed
@@ -28,8 +27,7 @@ const KGStatisticsTab = dynamic(
 );
 
 export default function KnowledgeGraphLayout({ children }: { children: React.ReactNode }) {
-  const activeTab = useKGStore(state => state.activeTab);
-  const setActiveTab = useKGStore(state => state.setActiveTab);
+  const [activeTab, setActiveTab] = React.useState<'Network' | 'Statistics'>('Network');
   const [leftSidebar, setLeftSidebar] = React.useState<boolean>(true);
   const [rightSidebar, setRightSidebar] = React.useState<boolean>(true);
 
@@ -40,7 +38,11 @@ export default function KnowledgeGraphLayout({ children }: { children: React.Rea
   }, [activeTab]);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className='flex h-screen flex-col bg-gray-100'>
+    <Tabs
+      value={activeTab}
+      onValueChange={value => setActiveTab(value as 'Network' | 'Statistics')}
+      className='flex h-screen flex-col bg-gray-100'
+    >
       <div className='flex h-8 justify-between bg-muted px-4'>
         <Button variant='hover' size='icon' className='h-full' onClick={() => setLeftSidebar(!leftSidebar)}>
           {leftSidebar ? <ChevronLeft className='size-4' /> : <ChevronRight className='size-4' />}

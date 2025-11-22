@@ -1,6 +1,7 @@
 'use client';
 
 import { useLazyQuery } from '@apollo/client/react';
+import type EventEmitter from 'events';
 import { DownloadIcon, SquareDashedMousePointerIcon } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -18,6 +19,8 @@ import type {
   GetHeadersVariables,
   OtherSection,
 } from '@/lib/interface';
+import type { ToolContext } from '@/lib/kg-tools';
+import { buildNodeSearchIndex, buildPropertySearchIndex, KG_TOOLS } from '@/lib/kg-tools';
 import { envURL, genePropertyCategoryEnumToString, selectedRadioStringToEnum } from '@/lib/utils';
 import { MouseControlMessage } from '../app';
 import { DiseaseMapCombobox } from '../DiseaseMapCombobox';
@@ -25,9 +28,11 @@ import { NodeColor } from '../left-panel/NodeColor';
 import { NodeSize } from '../left-panel/NodeSize';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
 import { Spinner } from '../ui/spinner';
+import { Textarea } from '../ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { KGFileSheet } from './KGFileSheet';
 import { NodeColorSelector } from './NodeColorSelector';
@@ -51,6 +56,11 @@ export function KGLeftSideBar() {
   const [diseaseData, setDiseaseData] = React.useState<GetDiseaseData | undefined>(undefined);
   const [diseaseMap, setDiseaseMap] = React.useState<string>('MONDO_0004976');
 
+  // Tool testing state
+  const [toolName, setToolName] = React.useState<string>('');
+  const [toolInput, setToolInput] = React.useState<string>('{}');
+  const [toolTesting, setToolTesting] = React.useState<boolean>(false);
+
   const [fetchHeader, { loading: headerLoading, called }] = useLazyQuery<GetHeadersData, GetHeadersVariables>(
     GET_HEADERS_QUERY,
     {
@@ -61,6 +71,8 @@ export function KGLeftSideBar() {
   const [fetchUniversal, { loading: universalLoading }] = useLazyQuery<GenePropertiesData, GenePropertiesDataVariables>(
     GENE_PROPERTIES_QUERY,
   );
+
+  const [hasGeneNodes, setHasGeneNodes] = React.useState(false);
 
   // Initialize disease name and fetch disease list
   useEffect(() => {
@@ -75,6 +87,16 @@ export function KGLeftSideBar() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!sigmaInstance) return;
+    (sigmaInstance as EventEmitter).once('loaded', () => {
+      const graph = sigmaInstance?.getGraph();
+      if (!graph || graph.order === 0) return;
+      const hasGeneNode = graph.someNode((_node, attr) => attr.nodeType === 'Gene');
+      if (hasGeneNode) setHasGeneNodes(true);
+    });
+  }, [sigmaInstance]);
 
   // Fetch headers when disease name changes
   useEffect(() => {
@@ -254,8 +276,64 @@ export function KGLeftSideBar() {
     });
   }
 
-  // Check if graph has Gene nodes
-  const hasGeneNodes = sigmaInstance?.getGraph().someNode((_node, attr) => attr.nodeType === 'Gene');
+  /**
+   * Test tool execution
+   */
+  async function handleToolTest() {
+    if (!sigmaInstance || !toolName) {
+      console.error('No sigma instance or tool name');
+      return;
+    }
+
+    setToolTesting(true);
+    console.group(`🔧 Tool Test: ${toolName}`);
+    console.log('Input:', toolInput);
+
+    try {
+      const input = JSON.parse(toolInput);
+      const graph = sigmaInstance.getGraph();
+
+      // Build indexes if needed
+      const graphSearchIndex = buildNodeSearchIndex(graph);
+      const kgPropertyOptions = useKGStore.getState().kgPropertyOptions;
+      const propertySearchIndex = buildPropertySearchIndex(kgPropertyOptions || {}, radioOptions);
+
+      const context: ToolContext = {
+        store: useKGStore.getState(),
+        legacy_store: useStore.getState(),
+        graphSearchIndex,
+        propertySearchIndex,
+      };
+
+      const toolFn = KG_TOOLS[toolName as keyof typeof KG_TOOLS];
+
+      if (!toolFn) {
+        console.error(`Tool "${toolName}" not found in KG_TOOLS`);
+        console.log('Available tools:', Object.keys(KG_TOOLS));
+        return;
+      }
+
+      // biome-ignore lint/suspicious/noExplicitAny: tool input
+      const result = await toolFn(input as any, context);
+
+      console.log('Result:', result);
+
+      if (result.success) {
+        console.log('✅ Tool executed successfully');
+        console.log('Data:', result.data);
+        if (result.visualUpdate) {
+          console.log('Visual Update:', result.visualUpdate);
+        }
+      } else {
+        console.error('❌ Tool failed:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+    } finally {
+      console.groupEnd();
+      setToolTesting(false);
+    }
+  }
 
   return (
     <ScrollArea className='flex h-[calc(96vh-1.5px)] flex-col border-r p-2'>
@@ -343,6 +421,46 @@ export function KGLeftSideBar() {
       <div className='mb-2 flex flex-col space-y-2'>
         <NodeSearch />
         <KGFileSheet />
+      </div>
+
+      {/* Tool Testing Section (Temporary) */}
+      <div className='mt-4 rounded border border-yellow-500 bg-yellow-50 p-3'>
+        <Label className='mb-2 font-bold text-yellow-800'>🧪 Tool Testing</Label>
+        <div className='flex flex-col space-y-2'>
+          <div>
+            <Label className='text-xs'>Tool Name</Label>
+            <Input
+              placeholder='e.g., searchNodes'
+              value={toolName}
+              onChange={e => setToolName(e.target.value)}
+              className='text-xs'
+            />
+          </div>
+          <div>
+            <Label className='text-xs'>Input (JSON)</Label>
+            <Textarea
+              placeholder='{"query": "BRCA1", "limit": 5}'
+              value={toolInput}
+              onChange={e => setToolInput(e.target.value)}
+              className='font-mono text-xs'
+              rows={4}
+            />
+          </div>
+          <Button
+            onClick={handleToolTest}
+            disabled={!sigmaInstance || !toolName || toolTesting}
+            size='sm'
+            variant='outline'
+          >
+            {toolTesting ? <Spinner size='small' /> : 'Test Tool'}
+          </Button>
+          <details className='text-xs'>
+            <summary className='cursor-pointer text-yellow-700'>Available Tools</summary>
+            <div className='mt-1 max-h-32 overflow-y-auto rounded bg-white p-2 font-mono text-[10px]'>
+              {Object.keys(KG_TOOLS).join(', ')}
+            </div>
+          </details>
+        </div>
       </div>
     </ScrollArea>
   );

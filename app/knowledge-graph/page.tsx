@@ -1,6 +1,6 @@
 'use client';
 
-import { ChatWindow } from '@/components/chat';
+import { KGChatWindow } from '@/components/chat';
 import { Spinner } from '@/components/ui/spinner';
 import '@react-sigma/core/lib/style.css';
 import dynamic from 'next/dynamic';
@@ -22,11 +22,13 @@ const KGGraphSigmaContainer = dynamic(
 
 export default function KnowledgeGraphPage() {
   return (
-    <>
-      <div className='h-[87%]'>
+    <div className='flex h-full flex-col'>
+      <div className='min-h-0 flex-1'>
         <KGGraphSigmaContainer />
       </div>
-      <ChatWindow />
-    </>
+      <div className='mb-2 shrink-0'>
+        <KGChatWindow />
+      </div>
+    </div>
   );
 }

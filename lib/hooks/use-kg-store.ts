@@ -1,12 +1,17 @@
 import type Sigma from 'sigma';
 import { create } from 'zustand';
 import type { EdgeAttributes, NodeAttributes } from '../interface';
+import { Trie } from '../trie';
 
 /**
  * Knowledge Graph Store - Zustand store for KG visualization state
  * Simplified from GraphStore, removing gene-specific logic
  */
 export interface KGStore {
+  /**
+   * Trie mapping node names to IDs for fast lookup
+   */
+  nodeNameToIdTrie: Trie<{ key: string; value: string }>;
   /**
    * Node suggestions for search auto-complete
    */
@@ -47,11 +52,6 @@ export interface KGStore {
    * Default base node size (used for proportional sizing)
    */
   defaultNodeSize: number;
-
-  /**
-   * Maximum degree in the graph (for size normalization)
-   */
-  maxDegree: number;
 
   /**
    * Default label rendered size threshold
@@ -169,31 +169,6 @@ export interface KGStore {
    * Highlight Neighbor Nodes on hover
    */
   highlightNeighborNodes: boolean;
-
-  /**
-   * Active tab in the main layout
-   */
-  activeTab: string;
-
-  /**
-   * Setter function for the active tab
-   */
-  setActiveTab: (tab: string) => void;
-
-  /**
-   * Show only visible nodes in analysis
-   */
-  showOnlyVisible: boolean;
-
-  /**
-   * Leiden clustering communities
-   */
-  communities: Record<string, string[]> | null;
-
-  /**
-   * Minimap visibility toggle
-   */
-  minimapVisible: boolean;
 }
 
 export const useKGStore = create<KGStore>(set => ({
@@ -213,7 +188,6 @@ export const useKGStore = create<KGStore>(set => ({
     linkDistance: 30,
   },
   defaultNodeSize: 5,
-  maxDegree: 1,
   defaultLabelDensity: 1.5,
   defaultLabelSize: 8,
   selectedNodes: [],
@@ -221,7 +195,7 @@ export const useKGStore = create<KGStore>(set => ({
   selectedRadioNodeSize: undefined,
   showEdgeColor: false,
   proportionalSizing: false,
-
+  nodeNameToIdTrie: new Trie<{ key: string; value: string }>(),
   networkStatistics: {
     totalNodes: 0,
     totalEdges: 0,
@@ -259,11 +233,4 @@ export const useKGStore = create<KGStore>(set => ({
   edgeOpacity: 1,
   edgeWidth: 1,
   highlightNeighborNodes: false,
-
-  activeTab: 'Network',
-  setActiveTab: tab => set({ activeTab: tab }),
-
-  showOnlyVisible: false,
-  communities: null,
-  minimapVisible: true,
 }));

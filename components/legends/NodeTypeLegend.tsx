@@ -75,18 +75,20 @@ export function NodeTypeLegend() {
     if (hiddenTypes.has(nodeType)) {
       // Show nodes of this type
       newHiddenTypes.delete(nodeType);
-      graph.forEachNode((_node, attr) => {
+      graph.updateEachNodeAttributes((_node, attr) => {
         if ((attr.nodeType as string) === nodeType) {
-          graph.setNodeAttribute(_node, 'hidden', false);
+          attr.hidden = false;
         }
+        return attr;
       });
     } else {
       // Hide nodes of this type
       newHiddenTypes.add(nodeType);
-      graph.forEachNode((_node, attr) => {
+      graph.updateEachNodeAttributes((_node, attr) => {
         if ((attr.nodeType as string) === nodeType) {
-          graph.setNodeAttribute(_node, 'hidden', true);
+          attr.hidden = true;
         }
+        return attr;
       });
     }
 

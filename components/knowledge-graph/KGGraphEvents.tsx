@@ -1,6 +1,7 @@
 'use client';
 
 import { useCamera, useRegisterEvents, useSigma } from '@react-sigma/core';
+import type EventEmitter from 'events';
 import type Graph from 'graphology';
 import { useEffect, useRef, useState } from 'react';
 import { HIGHLIGHTED_EDGE_COLOR } from '@/lib/data';
@@ -102,7 +103,7 @@ export function KGGraphEvents({
   const nodeSearchQuery = useKGStore(state => state.nodeSearchQuery);
   const activePropertyNodeTypes = useKGStore(state => state.activePropertyNodeTypes);
   const highlightNeighborNodes = useKGStore(state => state.highlightNeighborNodes);
-  const trieRef = useRef(new Trie<{ key: string; value: string }>());
+  const nodeNameToIdTrie = useKGStore(state => state.nodeNameToIdTrie);
 
   const { gotoNode } = useCamera();
 
@@ -123,34 +124,38 @@ export function KGGraphEvents({
     sigma.refresh();
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: not needed
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sigma is stable
   useEffect(() => {
-    if (trieRef.current.size === 0) {
+    (sigma as EventEmitter).once('loaded', () => {
       if (graph.order === 0) return; // Graph not yet populated
       const nodeArr = graph.mapNodes((node, attributes) => ({
         key: attributes.label || node,
         value: node,
       })) as { key: string; value: string }[];
       if (!Array.isArray(nodeArr) || nodeArr.length === 0) return;
-      trieRef.current = Trie.fromArray(nodeArr, 'key');
-    }
+      useKGStore.setState({ nodeNameToIdTrie: Trie.fromArray(nodeArr, 'key') });
+    });
+  }, [sigma]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: not needed
+  useEffect(() => {
     const prefix = nodeSearchQuery.split(/[\n,]/).pop()?.trim() || '';
     if (prefix.length === 0) return;
-    const suggestions = trieRef.current.search(prefix).map(s => s.key);
+    const suggestions = nodeNameToIdTrie.search(prefix).map(s => s.key);
     useKGStore.setState({ nodeSuggestions: suggestions });
   }, [nodeSearchQuery]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: nodeSearchQuery only needed
   useEffect(() => {
     const graph = sigma.getGraph();
-    if (trieRef.current.size === 0) return;
+    if (nodeNameToIdTrie.size === 0) return;
     const nodeIds = new Set(
       nodeSearchQuery
         .toUpperCase()
         .split(/[\n,]/)
         .map(s => s.trim())
         .filter(s => s.length > 0)
-        .map(s => trieRef.current.get(s)?.value || s)
+        .map(s => nodeNameToIdTrie.get(s)?.value || s)
         .filter(s => graph.hasNode(s)),
     ) as Set<string>;
 

@@ -12,12 +12,10 @@ import { Input } from '@/components/ui/input';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useStore } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 export default function NetworkLayoutPage({ children }: { children: React.ReactNode }) {
-  const activeTab = useStore(state => state.activeTab);
-  const setActiveTab = useStore(state => state.setActiveTab);
+  const [activeTab, setActiveTab] = React.useState<'Network' | 'Statistics' | 'Heatmap'>('Network');
   const [leftSidebar, setLeftSidebar] = React.useState<boolean>(true);
   const [rightSidebar, setRightSidebar] = React.useState<boolean>(true);
 
@@ -28,7 +26,11 @@ export default function NetworkLayoutPage({ children }: { children: React.ReactN
   }, [activeTab]);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className='flex h-screen flex-col bg-gray-100'>
+    <Tabs
+      value={activeTab}
+      onValueChange={value => setActiveTab(value as 'Network' | 'Statistics' | 'Heatmap')}
+      className='flex h-screen flex-col bg-gray-100'
+    >
       <div className='flex h-8 justify-between bg-muted px-4'>
         <Button variant='hover' size='icon' className='h-full' onClick={() => setLeftSidebar(!leftSidebar)}>
           {leftSidebar ? <ChevronLeft className='size-4' /> : <ChevronRight className='size-4' />}

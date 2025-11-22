@@ -161,11 +161,6 @@ export interface GraphStore {
    * Highlight Neighbor Nodes
    */
   highlightNeighborNodes: boolean;
-
-  /**
-   * Active tab in the main layout.
-   */
-  activeTab: string;
   /**
    * Pagination state for the OpenTargets heatmap.
    */
@@ -178,11 +173,6 @@ export interface GraphStore {
    * Show only visible nodes (for global heatmap visibility)
    */
   showOnlyVisible: boolean;
-
-  /**
-   * Setter function for the active tab.
-   */
-  setActiveTab: (tab: string) => void;
 }
 
 export type RadioOptions = {

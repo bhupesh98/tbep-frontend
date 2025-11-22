@@ -25,16 +25,6 @@ export function KGGraphAnalysis() {
     {},
   );
 
-  // Store original node sizes to prevent accumulation
-  const originalNodeSizes = (() => {
-    const sizeMap = new Map<string, number>();
-    const defaultNodeSize = useKGStore.getState().defaultNodeSize;
-    graph.forEachNode((node, attr) => {
-      sizeMap.set(node, attr.size || defaultNodeSize);
-    });
-    return sizeMap;
-  })();
-
   // Listen for ALGORITHM events
   useEffect(() => {
     const handleAlgorithm = async ({ name, parameters }: EventMessage[Events.ALGORITHM]) => {
@@ -43,12 +33,12 @@ export function KGGraphAnalysis() {
         const typeColorMap = generateTypeColorMap(graph);
 
         // Reset all node attributes
-        graph.updateEachNodeAttributes((node, attr) => {
+        graph.updateEachNodeAttributes((_node, attr) => {
           attr.color = typeColorMap.get(attr.nodeType as string) || undefined;
           attr.community = undefined;
           attr.type = undefined;
           attr.highlighted = false;
-          attr.size = originalNodeSizes.get(node) || attr.size || 5;
+          attr.size = 5;
           return attr;
         });
 
@@ -243,8 +233,7 @@ export function KGGraphAnalysis() {
                 graph.setNodeAttribute(node, 'zIndex', 100); // Increase z-index
                 graph.setNodeAttribute(node, 'type', 'border');
                 // Make nodes bigger using original size
-                const originalSize = originalNodeSizes.get(node) || 5;
-                graph.setNodeAttribute(node, 'size', originalSize * 1.5);
+                graph.setNodeAttribute(node, 'size', useKGStore.getState().defaultNodeSize * 1.5);
               }
             });
 
@@ -331,8 +320,7 @@ export function KGGraphAnalysis() {
                 graph.setNodeAttribute(node, 'highlighted', true);
                 graph.setNodeAttribute(node, 'type', 'border');
                 graph.setNodeAttribute(node, 'zIndex', 100); // Increase z-index
-                const originalSize = originalNodeSizes.get(node) || 5;
-                graph.setNodeAttribute(node, 'size', originalSize * 1.5);
+                graph.setNodeAttribute(node, 'size', useKGStore.getState().defaultNodeSize * 1.5);
               }
             });
 
@@ -367,7 +355,7 @@ export function KGGraphAnalysis() {
     return () => {
       eventEmitter.off(Events.ALGORITHM, handleAlgorithm);
     };
-  }, [graph, sigma, originalNodeSizes]);
+  }, [graph, sigma]);
 
   // Helper to get readable text color
   const getReadableTextColor = useCallback((hex: string) => {

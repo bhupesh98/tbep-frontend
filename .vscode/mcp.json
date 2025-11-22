@@ -3,6 +3,10 @@
     "next-devtools": {
       "command": "pnpx",
       "args": ["next-devtools-mcp"]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"]
     }
   }
 }

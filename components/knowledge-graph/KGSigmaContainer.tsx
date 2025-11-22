@@ -136,7 +136,7 @@ export function KGGraphSigmaContainer(
           </FullScreenControl>
         </ControlsContainer>
         {/* Selection Toolbar - Positioned as overlay in top-left */}
-        <div className='pointer-events-none absolute top-4 left-4 z-10'>
+        <div className='pointer-events-none absolute top-4 left-4'>
           <div className='pointer-events-auto rounded-lg border border-gray-200 bg-white shadow-md'>
             <KGSelectionToolbar selectionPluginRef={selectionPluginRef} />
           </div>

@@ -1,7 +1,6 @@
 import { toUndirected } from 'graphology-operators';
 import type { AbstractGraph } from 'graphology-types';
 import { toast } from 'sonner';
-import { useKGStore } from '@/lib/hooks';
 import type { EdgeAttributes, NodeAttributes } from '@/lib/interface';
 
 /**
@@ -79,8 +78,6 @@ export async function applyLeidenClustering(
       }
       communitiesData[id] = community.nodes;
     }
-
-    useKGStore.setState({ communities: communitiesData });
 
     const filteredCount = Object.keys(communitiesData).length;
     if (filteredCount > 100) {
